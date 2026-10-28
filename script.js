@@ -1,28 +1,36 @@
 // --- 全域變數與 LocalStorage 初始化 ---
 let timerInterval = null;
-let timeLeft = 25 * 60; // 25 分鐘
+let selectedDuration = 25 * 60; // 預設 25 分鐘
+let timeLeft = selectedDuration;
 let isRunning = false;
-let isWorkMode = true;
 
-// 從 LocalStorage 載入資料
+// 真實音效 API 播放器
+const audioPlayers = {
+  rain: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2393.mp3'),
+  coffee: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-restaurant-crowd-talking-ambient-2443.mp3')
+};
+audioPlayers.rain.loop = true;
+audioPlayers.coffee.loop = true;
+
+// 本地存儲結構：支援日期記錄 (以 YYYY-MM-DD 為 key)
 let appData = JSON.parse(localStorage.getItem('study_station_data')) || {
   todos: [],
-  pomodoroCount: 0,
-  history: []
+  dailyLogs: {} // 例如 '2026-10-28': { minutes: 50, notes: '讀了計算機網路' }
 };
 
-// 頁面載入時初始化 UI
+let currentCalendarDate = new Date();
+let activeModalDateStr = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   renderTodos();
-  renderHistory();
+  renderCalendar();
 });
 
-// 保存資料到 LocalStorage
 function saveData() {
   localStorage.setItem('study_station_data', JSON.stringify(appData));
 }
 
-// --- 分頁切換邏輯 ---
+// --- 分頁切換 ---
 function switchTab(tabName) {
   ['timer', 'todo', 'calendar'].forEach(tab => {
     const section = document.getElementById(`tab-${tab}`);
@@ -35,9 +43,17 @@ function switchTab(tabName) {
       btn.className = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 font-medium transition";
     }
   });
+  if (tabName === 'calendar') renderCalendar();
 }
 
 // --- 番茄鐘邏輯 ---
+function setCustomTimer(minutes) {
+  if (isRunning) resetTimer();
+  selectedDuration = minutes * 60;
+  timeLeft = selectedDuration;
+  updateTimerDisplay();
+}
+
 function updateTimerDisplay() {
   const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
   const seconds = (timeLeft % 60).toString().padStart(2, '0');
@@ -71,7 +87,7 @@ function toggleTimer() {
 function resetTimer() {
   clearInterval(timerInterval);
   isRunning = false;
-  timeLeft = isWorkMode ? 25 * 60 : 5 * 60;
+  timeLeft = selectedDuration;
   updateTimerDisplay();
   const startBtn = document.getElementById('start-btn');
   startBtn.textContent = '開始專注';
@@ -79,23 +95,31 @@ function resetTimer() {
 }
 
 function handleTimerComplete() {
-  if (isWorkMode) {
-    appData.pomodoroCount++;
-    const now = new Date().toLocaleString('zh-TW', { hour12: false });
-    appData.history.unshift(`完成一次 25 分鐘專注 (${now})`);
-    saveData();
-    renderHistory();
-    alert('🎉 太棒了！完成了 25 分鐘的專注，休息 5 分鐘吧！');
-    isWorkMode = false;
-    timeLeft = 5 * 60;
-    document.getElementById('timer-mode').textContent = '休息時間';
-  } else {
-    alert('🔔 休息結束，準備好開始下一次專注了嗎？');
-    isWorkMode = true;
-    timeLeft = 25 * 60;
-    document.getElementById('timer-mode').textContent = '專注時間';
+  const todayStr = getTodayString();
+  const minutesCompleted = Math.round(selectedDuration / 60);
+
+  if (!appData.dailyLogs[todayStr]) {
+    appData.dailyLogs[todayStr] = { minutes: 0, notes: '' };
   }
+  appData.dailyLogs[todayStr].minutes += minutesCompleted;
+  saveData();
+
+  alert(`🎉 恭喜完成 ${minutesCompleted} 分鐘專注！已為你紀錄至今日行事曆。`);
   resetTimer();
+}
+
+// --- 音效播放 ---
+function toggleAudio(type) {
+  const player = audioPlayers[type];
+  const icon = document.getElementById(`icon-${type}`);
+  
+  if (player.paused) {
+    player.play();
+    icon.className = "fa-solid fa-pause text-xs text-indigo-400";
+  } else {
+    player.pause();
+    icon.className = "fa-solid fa-play text-xs text-slate-500";
+  }
 }
 
 // --- 待辦事項邏輯 ---
@@ -140,15 +164,79 @@ function renderTodos() {
   `).join('');
 }
 
-function renderHistory() {
-  document.getElementById('total-pomodoros').textContent = `${appData.pomodoroCount} 次`;
-  const list = document.getElementById('history-list');
-  list.innerHTML = appData.history.slice(0, 10).map(item => `
-    <div class="p-2 bg-slate-900/30 rounded border border-slate-800">${item}</div>
-  `).join('');
+// --- 月曆邏輯 (Calendar System) ---
+function getTodayString() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
-// --- 背景音效模擬 ---
-function toggleAudio(type) {
-  alert(`音效 [${type === 'rain' ? '窗外雨聲' : '咖啡廳氛圍'}] 播放狀態已切換`);
+function prevMonth() {
+  currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+  renderCalendar();
+}
+
+function nextMonth() {
+  currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const year = currentCalendarDate.getFullYear();
+  const month = currentCalendarDate.getMonth();
+  
+  document.getElementById('calendar-month-year').textContent = `${year}年 ${month + 1}月`;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const grid = document.getElementById('calendar-grid');
+  grid.innerHTML = '';
+
+  // 填補月初空白欄位
+  for (let i = 0; i < firstDay; i++) {
+    grid.innerHTML += `<div class="h-24 bg-slate-900/20 rounded-xl border border-slate-800/40"></div>`;
+  }
+
+  // 渲染當月每一天
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const log = appData.dailyLogs[dateStr] || { minutes: 0, notes: '' };
+    const isToday = dateStr === getTodayString();
+
+    grid.innerHTML += `
+      <div onclick="openDayModal('${dateStr}')" 
+           class="h-24 p-2 bg-slate-900/60 hover:bg-slate-700/40 rounded-xl border ${isToday ? 'border-indigo-500 bg-indigo-950/20' : 'border-slate-700/60'} 
+                  cursor-pointer transition flex flex-col justify-between">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold ${isToday ? 'text-indigo-400' : 'text-slate-300'}">${day}</span>
+          ${log.minutes > 0 ? `<span class="text-[10px] px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded font-semibold">${log.minutes}分</span>` : ''}
+        </div>
+        <p class="text-[11px] text-slate-400 truncate mt-1">${log.notes || ''}</p>
+      </div>
+    `;
+  }
+}
+
+// --- 月曆點擊詳細彈窗 (Modal) ---
+function openDayModal(dateStr) {
+  activeModalDateStr = dateStr;
+  const log = appData.dailyLogs[dateStr] || { minutes: 0, notes: '' };
+  
+  document.getElementById('modal-date-title').textContent = `${dateStr} 學習紀錄`;
+  document.getElementById('modal-study-time').value = log.minutes;
+  document.getElementById('modal-notes').value = log.notes;
+  document.getElementById('day-modal').classList.remove('hidden');
+}
+
+function closeDayModal() {
+  document.getElementById('day-modal').classList.add('hidden');
+}
+
+function saveDayModal() {
+  const minutes = parseInt(document.getElementById('modal-study-time').value) || 0;
+  const notes = document.getElementById('modal-notes').value.trim();
+
+  appData.dailyLogs[activeModalDateStr] = { minutes, notes };
+  saveData();
+  renderCalendar();
+  closeDayModal();
 }

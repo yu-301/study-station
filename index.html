@@ -69,7 +69,31 @@
       <ul id="todoList" class="list"></ul>
     </section>
     <section id="view-stats" class="view" hidden>
-      <p class="soon">數據統計：之後加入。</p>
+      <h2>數據統計</h2>
+      <div class="row">
+        <select id="sRange" aria-label="統計範圍">
+          <option value="7">最近 7 天</option>
+          <option value="30">最近 30 天</option>
+          <option value="custom">自訂範圍</option>
+        </select>
+        <span id="sCustom" class="row" hidden><input id="sFrom" type="date" aria-label="起"> <span>至</span> <input
+            id="sTo" type="date" aria-label="迄"></span>
+      </div>
+      <div id="sCards" class="cards"></div>
+      <div class="charts">
+        <div>
+          <h3>每日專注時間</h3>
+          <div class="chartbox"><canvas id="cDaily"></canvas></div>
+        </div>
+        <div>
+          <h3>一天中的專注時段</h3>
+          <div class="chartbox"><canvas id="cHour"></canvas></div>
+        </div>
+      </div>
+      <h3>AI 分析</h3>
+      <p class="soon">會把這段期間的時長、標籤、筆記和完成的待辦送到 Groq 進行分析。「專注時段」只計算用番茄鐘記錄的時間，手動修改的分鐘數不會算進去。</p>
+      <button id="sAI" class="primary">AI 分析這段期間</button>
+      <div id="sOut" class="aiout" aria-live="polite"></div>
     </section>
     <section id="view-money" class="view narrow" hidden>
       <h2>生活記帳</h2>
@@ -136,6 +160,8 @@
 
   <script src="app.js"></script>
   <script src="ai.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="stats.js"></script>
 </body>
 
 </html>

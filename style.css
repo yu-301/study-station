@@ -1,4 +1,4 @@
-:root {
+Claude Style · CSS:root {
   --bg: #eef2f5;
   --ink: #1f2a37;
   --mute: #6b7785;
@@ -483,4 +483,68 @@ dialog label.chk {
   flex-direction: row;
   align-items: center;
   gap: .5rem
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: .6rem;
+  margin: 1rem 0
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: .6rem .8rem;
+  display: flex;
+  flex-direction: column
+}
+
+.card span {
+  color: var(--mute);
+  font-size: .85rem
+}
+
+.card strong {
+  font-size: 1.15rem
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem
+}
+
+.charts h3,
+#view-stats>h3 {
+  margin: 1rem 0 .5rem;
+  font-size: 1rem
+}
+
+.chartbox {
+  position: relative;
+  height: 260px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: .5rem
+}
+
+.aiout {
+  margin-top: 1rem;
+  white-space: pre-wrap;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: .75rem 1rem;
+  min-height: 3rem
+}
+
+.aiout:empty {
+  display: none
+}
+
+.aiout.err {
+  border-color: #d9534f
 }

@@ -1,14 +1,12 @@
-<!-- 負責網頁的畫面結構與樣式 -->
- 
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI 沉浸式學習工作站</title>
-  <!-- 載入 Tailwind CSS 快速美化 UI -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 載入 FontAwesome 圖示庫 -->
+  <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex font-sans">
@@ -28,12 +26,12 @@
           <i class="fa-solid fa-list-check"></i> 待辦事項
         </button>
         <button onclick="switchTab('calendar')" id="btn-calendar" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 font-medium transition">
-          <i class="fa-solid fa-calendar-days"></i> 學習歷程記錄
+          <i class="fa-solid fa-calendar-days"></i> 學習歷程行事曆
         </button>
       </nav>
     </div>
     <div class="p-3 bg-slate-700/40 rounded-xl text-xs text-slate-400 text-center">
-      LocalStorage 狀態：<span id="storage-status" class="text-emerald-400 font-semibold">已同步</span>
+      LocalStorage 狀態：<span id="storage-status" class="text-emerald-400 font-semibold">本地已同步</span>
     </div>
   </aside>
 
@@ -44,8 +42,20 @@
     <section id="tab-timer" class="max-w-2xl mx-auto space-y-8">
       <!-- 番茄鐘卡片 -->
       <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center shadow-xl">
-        <span id="timer-mode" class="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-sm font-medium">專注時間</span>
+        <div class="flex justify-center items-center gap-2 mb-4">
+          <span id="timer-mode" class="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-sm font-medium">專注模式</span>
+        </div>
+
+        <!-- 自訂時間按鈕 -->
+        <div class="flex justify-center gap-2 mb-6">
+          <button onclick="setCustomTimer(15)" class="px-3 py-1.5 bg-slate-700 hover:bg-indigo-600 rounded-lg text-xs font-medium transition">15分鐘</button>
+          <button onclick="setCustomTimer(25)" class="px-3 py-1.5 bg-indigo-600 rounded-lg text-xs font-medium transition">25分鐘</button>
+          <button onclick="setCustomTimer(45)" class="px-3 py-1.5 bg-slate-700 hover:bg-indigo-600 rounded-lg text-xs font-medium transition">45分鐘</button>
+          <button onclick="setCustomTimer(60)" class="px-3 py-1.5 bg-slate-700 hover:bg-indigo-600 rounded-lg text-xs font-medium transition">60分鐘</button>
+        </div>
+
         <div id="timer-display" class="text-7xl font-mono font-bold my-6 tracking-wider text-slate-50">25:00</div>
+        
         <div class="flex justify-center gap-4">
           <button id="start-btn" onclick="toggleTimer()" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30">開始專注</button>
           <button onclick="resetTimer()" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl transition">重置</button>
@@ -58,11 +68,11 @@
         <div class="grid grid-cols-2 gap-4">
           <button onclick="toggleAudio('rain')" id="audio-rain" class="p-4 border border-slate-700 rounded-xl bg-slate-900/50 hover:border-indigo-500 flex items-center justify-between transition">
             <span class="flex items-center gap-3"><i class="fa-solid fa-cloud-rain text-blue-400"></i> 窗外雨聲</span>
-            <i class="fa-solid fa-play text-xs text-slate-500"></i>
+            <i id="icon-rain" class="fa-solid fa-play text-xs text-slate-500"></i>
           </button>
           <button onclick="toggleAudio('coffee')" id="audio-coffee" class="p-4 border border-slate-700 rounded-xl bg-slate-900/50 hover:border-indigo-500 flex items-center justify-between transition">
             <span class="flex items-center gap-3"><i class="fa-solid fa-mug-hot text-amber-400"></i> 咖啡廳氛圍</span>
-            <i class="fa-solid fa-play text-xs text-slate-500"></i>
+            <i id="icon-coffee" class="fa-solid fa-play text-xs text-slate-500"></i>
           </button>
         </div>
       </div>
@@ -80,25 +90,59 @@
       </div>
     </section>
 
-    <!-- 3. 學習歷程記錄分頁 -->
-    <section id="tab-calendar" class="max-w-2xl mx-auto space-y-6 hidden">
+    <!-- 3. 學習歷程行事曆分頁 -->
+    <section id="tab-calendar" class="max-w-4xl mx-auto space-y-6 hidden">
       <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
-        <h2 class="text-xl font-bold mb-4">專注歷史紀錄</h2>
-        <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-700 flex justify-between items-center mb-4">
-          <span>累積專注次數</span>
-          <span id="total-pomodoros" class="text-2xl font-bold text-indigo-400">0 次</span>
+        <!-- 行事曆標頭與月份切換按鈕 -->
+        <div class="flex justify-between items-center mb-6">
+          <h2 id="calendar-month-year" class="text-2xl font-bold">2026年 10月</h2>
+          <div class="flex gap-2">
+            <button onclick="prevMonth()" class="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition"><i class="fa-solid fa-chevron-left"></i> 上個月</button>
+            <button onclick="nextMonth()" class="p-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition">下個月 <i class="fa-solid fa-chevron-right"></i></button>
+          </div>
         </div>
-        <div id="history-list" class="space-y-2 text-sm text-slate-400">
-          <!-- 歷程會動態載入 -->
+
+        <!-- 星期標頭 -->
+        <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-slate-400 mb-2">
+          <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
         </div>
+
+        <!-- 日曆網格區域 -->
+        <div id="calendar-grid" class="grid grid-cols-7 gap-2"></div>
       </div>
     </section>
 
   </main>
 
-  <!-- 右下角 AI 懸浮小助手預留區（下階段串接 AI） -->
+  <!-- 日期詳細紀錄 Modal 彈窗 -->
+  <div id="day-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center hidden z-50">
+    <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <h3 id="modal-date-title" class="text-lg font-bold">2026-10-28 紀錄</h3>
+        <button onclick="closeDayModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-400 font-medium">當天專注時長 (分鐘)</label>
+          <input type="number" id="modal-study-time" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 mt-1 text-slate-200" placeholder="0">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 font-medium">當天學習筆記/心得</label>
+          <textarea id="modal-notes" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 mt-1 text-slate-200 text-sm" placeholder="記錄今天讀了什麼..."></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeDayModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm font-medium">取消</button>
+        <button onclick="saveDayModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium">儲存紀錄</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右下角 AI 小助手預留鈕 -->
   <div class="fixed bottom-6 right-6">
-    <button onclick="alert('AI 小助手功能將於下一階段串接！')" class="w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-2xl transition hover:scale-105">
+    <button onclick="alert('底層骨架已完整建置！下一階段正式導入 AI')" class="w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-2xl transition hover:scale-105">
       <i class="fa-solid fa-robot text-2xl"></i>
     </button>
   </div>

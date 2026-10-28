@@ -1,0 +1,108 @@
+<!-- 負責網頁的畫面結構與樣式 -->
+ 
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 沉浸式學習工作站</title>
+  <!-- 載入 Tailwind CSS 快速美化 UI -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 載入 FontAwesome 圖示庫 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex font-sans">
+
+  <!-- 左側導覽列 (Sidebar) -->
+  <aside class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col justify-between p-4">
+    <div>
+      <div class="flex items-center gap-3 px-2 py-3 mb-6">
+        <i class="fa-solid fa-graduation-cap text-indigo-400 text-2xl"></i>
+        <h1 class="font-bold text-lg tracking-wide">Study Station</h1>
+      </div>
+      <nav class="space-y-1">
+        <button onclick="switchTab('timer')" id="btn-timer" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium transition">
+          <i class="fa-solid fa-clock"></i> 專注番茄鐘
+        </button>
+        <button onclick="switchTab('todo')" id="btn-todo" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 font-medium transition">
+          <i class="fa-solid fa-list-check"></i> 待辦事項
+        </button>
+        <button onclick="switchTab('calendar')" id="btn-calendar" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 font-medium transition">
+          <i class="fa-solid fa-calendar-days"></i> 學習歷程記錄
+        </button>
+      </nav>
+    </div>
+    <div class="p-3 bg-slate-700/40 rounded-xl text-xs text-slate-400 text-center">
+      LocalStorage 狀態：<span id="storage-status" class="text-emerald-400 font-semibold">已同步</span>
+    </div>
+  </aside>
+
+  <!-- 主要內容區 (Main Content) -->
+  <main class="flex-1 p-8 overflow-y-auto">
+
+    <!-- 1. 專注番茄鐘分頁 -->
+    <section id="tab-timer" class="max-w-2xl mx-auto space-y-8">
+      <!-- 番茄鐘卡片 -->
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center shadow-xl">
+        <span id="timer-mode" class="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-sm font-medium">專注時間</span>
+        <div id="timer-display" class="text-7xl font-mono font-bold my-6 tracking-wider text-slate-50">25:00</div>
+        <div class="flex justify-center gap-4">
+          <button id="start-btn" onclick="toggleTimer()" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30">開始專注</button>
+          <button onclick="resetTimer()" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl transition">重置</button>
+        </div>
+      </div>
+
+      <!-- 背景音效控制卡片 -->
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <h3 class="font-semibold text-lg mb-4 flex items-center gap-2"><i class="fa-solid fa-headphones text-indigo-400"></i> 專注白噪音</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <button onclick="toggleAudio('rain')" id="audio-rain" class="p-4 border border-slate-700 rounded-xl bg-slate-900/50 hover:border-indigo-500 flex items-center justify-between transition">
+            <span class="flex items-center gap-3"><i class="fa-solid fa-cloud-rain text-blue-400"></i> 窗外雨聲</span>
+            <i class="fa-solid fa-play text-xs text-slate-500"></i>
+          </button>
+          <button onclick="toggleAudio('coffee')" id="audio-coffee" class="p-4 border border-slate-700 rounded-xl bg-slate-900/50 hover:border-indigo-500 flex items-center justify-between transition">
+            <span class="flex items-center gap-3"><i class="fa-solid fa-mug-hot text-amber-400"></i> 咖啡廳氛圍</span>
+            <i class="fa-solid fa-play text-xs text-slate-500"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 待辦事項分頁 -->
+    <section id="tab-todo" class="max-w-2xl mx-auto space-y-6 hidden">
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <h2 class="text-xl font-bold mb-4">今日待辦事項</h2>
+        <div class="flex gap-3 mb-6">
+          <input type="text" id="todo-input" placeholder="新增學習目標..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 text-slate-200">
+          <button onclick="addTodo()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition">新增</button>
+        </div>
+        <ul id="todo-list" class="space-y-3"></ul>
+      </div>
+    </section>
+
+    <!-- 3. 學習歷程記錄分頁 -->
+    <section id="tab-calendar" class="max-w-2xl mx-auto space-y-6 hidden">
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <h2 class="text-xl font-bold mb-4">專注歷史紀錄</h2>
+        <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-700 flex justify-between items-center mb-4">
+          <span>累積專注次數</span>
+          <span id="total-pomodoros" class="text-2xl font-bold text-indigo-400">0 次</span>
+        </div>
+        <div id="history-list" class="space-y-2 text-sm text-slate-400">
+          <!-- 歷程會動態載入 -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 右下角 AI 懸浮小助手預留區（下階段串接 AI） -->
+  <div class="fixed bottom-6 right-6">
+    <button onclick="alert('AI 小助手功能將於下一階段串接！')" class="w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-2xl transition hover:scale-105">
+      <i class="fa-solid fa-robot text-2xl"></i>
+    </button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

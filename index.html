@@ -1,98 +1,109 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>學習儀表板</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>學習儀表板</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-<aside class="side">
-  <h1>學習儀表板</h1>
-  <nav id="nav">
-    <button data-view="calendar" class="on">學習歷程月曆</button>
-    <button data-view="timer">專注番茄鐘</button>
-    <button data-view="todo">待辦事項</button>
-    <button data-view="stats">數據統計</button>
-    <button data-view="money">生活記帳</button>
-  </nav>
-  <p class="status"><span class="dot"></span><span id="status">讀取中…</span></p>
-</aside>
+  <aside class="side">
+    <h1>學習儀表板</h1>
+    <nav id="nav">
+      <button data-view="calendar" class="on">學習歷程月曆</button>
+      <button data-view="timer">專注番茄鐘</button>
+      <button data-view="todo">待辦事項</button>
+      <button data-view="stats">數據統計</button>
+      <button data-view="money">生活記帳</button>
+    </nav>
+    <p class="status"><span class="dot"></span><span id="status">讀取中…</span></p>
+  </aside>
 
-<main>
-  <section id="view-calendar" class="view">
-    <header class="bar">
-      <button id="prev" aria-label="上個月">‹</button>
-      <h2 id="monthTitle"></h2>
-      <button id="next" aria-label="下個月">›</button>
-      <span id="monthSum" class="sum"></span>
-    </header>
-    <div id="grid" class="grid"></div>
-  </section>
+  <main>
+    <section id="view-calendar" class="view">
+      <header class="bar">
+        <button id="prev" aria-label="上個月">‹</button>
+        <h2 id="monthTitle"></h2>
+        <button id="next" aria-label="下個月">›</button>
+        <span id="monthSum" class="sum"></span>
+      </header>
+      <div id="grid" class="grid"></div>
+    </section>
 
-  <section id="view-timer" class="view" hidden>
-    <div class="timer">
-      <p id="modeLabel" class="mode">專注</p>
-      <p id="clock" class="clock">25:00</p>
+    <section id="view-timer" class="view" hidden>
+      <div class="timer">
+        <p id="modeLabel" class="mode">專注</p>
+        <p id="clock" class="clock">25:00</p>
+        <div class="row">
+          <button id="startBtn" class="primary">開始</button>
+          <button id="resetBtn">重設</button>
+        </div>
+        <p id="msg" class="msg"></p>
+        <div class="row presets" id="presets">
+          <button data-m="15">15</button><button data-m="25">25</button>
+          <button data-m="45">45</button><button data-m="60">60</button>
+          <span>分鐘</span>
+        </div>
+        <div class="row">
+          <label>專注 <input id="focusIn" type="number" min="1" max="180"> 分</label>
+          <label>休息 <input id="restIn" type="number" min="1" max="60"> 分</label>
+        </div>
+        <div class="row noise">
+          <span>背景音</span>
+          <button data-n="rain">雨聲</button>
+          <button data-n="cafe">咖啡廳</button>
+          <button data-n="off" class="on">關閉</button>
+          <input id="vol" type="range" min="0" max="1" step="0.05" value="0.4" aria-label="音量">
+        </div>
+      </div>
+    </section>
+
+    <section id="view-todo" class="view narrow" hidden>
+      <h2>待辦事項</h2>
       <div class="row">
-        <button id="startBtn" class="primary">開始</button>
-        <button id="resetBtn">重設</button>
+        <input id="todoIn" class="grow" placeholder="新增一件待辦，按 Enter 加入">
+        <button id="todoAdd" class="primary">新增</button>
       </div>
-      <p id="msg" class="msg"></p>
-      <div class="row presets" id="presets">
-        <button data-m="15">15</button><button data-m="25">25</button>
-        <button data-m="45">45</button><button data-m="60">60</button>
-        <span>分鐘</span>
-      </div>
+      <ul id="todoList" class="list"></ul>
+    </section>
+    <section id="view-stats" class="view" hidden>
+      <p class="soon">數據統計：之後加入。</p>
+    </section>
+    <section id="view-money" class="view narrow" hidden>
+      <h2>生活記帳</h2>
       <div class="row">
-        <label>專注 <input id="focusIn" type="number" min="1" max="180"> 分</label>
-        <label>休息 <input id="restIn" type="number" min="1" max="60"> 分</label>
+        <input id="eDate" type="date" aria-label="日期">
+        <input id="eAmt" type="number" min="0" placeholder="金額（元）" aria-label="金額">
+        <select id="eCat" aria-label="分類">
+          <option>餐飲</option>
+          <option>交通</option>
+          <option>學習</option>
+          <option>娛樂</option>
+          <option>其他</option>
+        </select>
+        <input id="eNote" class="grow" placeholder="備註（選填）">
+        <button id="eAdd" class="primary">新增</button>
       </div>
-      <div class="row noise">
-        <span>背景音</span>
-        <button data-n="rain">雨聲</button>
-        <button data-n="cafe">咖啡廳</button>
-        <button data-n="off" class="on">關閉</button>
-        <input id="vol" type="range" min="0" max="1" step="0.05" value="0.4" aria-label="音量">
-      </div>
-    </div>
-  </section>
+      <p id="eSum" class="sum"></p>
+      <ul id="eList" class="list"></ul>
+    </section>
+  </main>
 
-  <section id="view-todo" class="view narrow" hidden>
-    <h2>待辦事項</h2>
+  <dialog id="dlg">
+    <h3 id="dlgTitle"></h3>
+    <label>讀書時長（分鐘）<input id="dFocus" type="number" min="0"></label>
+    <label>重點標籤（用逗號分隔）<input id="dTags" placeholder="例如：作業系統, 期中複習"></label>
+    <label>學習筆記<textarea id="dNotes" rows="6"></textarea></label>
+    <div id="dSummary" class="summary"></div>
     <div class="row">
-      <input id="todoIn" class="grow" placeholder="新增一件待辦，按 Enter 加入">
-      <button id="todoAdd" class="primary">新增</button>
+      <button id="dSave" class="primary">儲存</button>
+      <button id="dClose">取消</button>
     </div>
-    <ul id="todoList" class="list"></ul>
-  </section>
-  <section id="view-stats" class="view" hidden><p class="soon">數據統計：之後加入。</p></section>
-  <section id="view-money" class="view narrow" hidden>
-    <h2>生活記帳</h2>
-    <div class="row">
-      <input id="eDate" type="date" aria-label="日期">
-      <input id="eAmt" type="number" min="0" placeholder="金額（元）" aria-label="金額">
-      <select id="eCat" aria-label="分類"><option>餐飲</option><option>交通</option><option>學習</option><option>娛樂</option><option>其他</option></select>
-      <input id="eNote" class="grow" placeholder="備註（選填）">
-      <button id="eAdd" class="primary">新增</button>
-    </div>
-    <p id="eSum" class="sum"></p>
-    <ul id="eList" class="list"></ul>
-  </section>
-</main>
+  </dialog>
 
-<dialog id="dlg">
-  <h3 id="dlgTitle"></h3>
-  <label>讀書時長（分鐘）<input id="dFocus" type="number" min="0"></label>
-  <label>重點標籤（用逗號分隔）<input id="dTags" placeholder="例如：作業系統, 期中複習"></label>
-  <label>學習筆記<textarea id="dNotes" rows="6"></textarea></label>
-  <div id="dSummary" class="summary"></div>
-  <div class="row">
-    <button id="dSave" class="primary">儲存</button>
-    <button id="dClose">取消</button>
-  </div>
-</dialog>
-
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
+
 </html>

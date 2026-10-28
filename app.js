@@ -77,7 +77,7 @@ function beep() {
     const a = new AudioContext(), o = a.createOscillator(), g = a.createGain();
     o.connect(g); g.connect(a.destination); g.gain.value = 0.15; o.frequency.value = 880;
     o.start(); o.stop(a.currentTime + 0.4);
-  } catch {}
+  } catch { }
 }
 $('#startBtn').onclick = () => { if (tick) { stop(); renderTimer(); } else start(); };
 $('#resetBtn').onclick = () => { startedAt = null; $('#msg').textContent = ''; setMode(mode); };

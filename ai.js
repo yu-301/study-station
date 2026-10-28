@@ -3,7 +3,8 @@
 const AIK = 'studyhub.ai'; // Key 和 AI 設定獨立存放，不和學習資料混在一起
 let ai = {};
 try { ai = JSON.parse(localStorage.getItem(AIK)) || {}; } catch { }
-ai.model = ai.model || 'llama-3.3-70b-versatile';
+const DEFAULT_MODEL = 'openai/gpt-oss-120b'; // 課堂使用的模型（Groq 上的實際 ID 不含 "groq:" 前綴）
+if (!ai.model || ai.model === 'llama-3.3-70b-versatile') ai.model = DEFAULT_MODEL; // 舊版預設值自動換新
 ai.role = ai.role || 'puppy';
 ai.custom = ai.custom || '';
 if (ai.auto === undefined) ai.auto = true;
@@ -42,7 +43,7 @@ $('#clr').onclick = () => { history = []; $('#msgs').innerHTML = ''; };
 // ---- Key 設定 ----
 function openKeyDlg() {
     $('#kIn').value = ai.key || '';
-    $('#kModel').value = ai.model;
+    $('#kModel').value = ai.model; $('#kModel').placeholder = DEFAULT_MODEL;
     $('#kAuto').checked = ai.auto;
     $('#kState').textContent = ai.key ? '目前狀態：已儲存 Key（只存在這個瀏覽器）' : '目前狀態：尚未設定 Key';
     $('#keyDlg').showModal();
@@ -52,7 +53,7 @@ $('#kClose').onclick = () => $('#keyDlg').close();
 $('#kSave').onclick = () => {
     const k = $('#kIn').value.trim();
     if (!k) { $('#kIn').focus(); return; }
-    ai.key = k; ai.model = $('#kModel').value.trim() || 'llama-3.3-70b-versatile'; ai.auto = $('#kAuto').checked;
+    ai.key = k; ai.model = $('#kModel').value.trim() || DEFAULT_MODEL; ai.auto = $('#kAuto').checked;
     saveAI(); $('#keyDlg').close(); openPanel();
 };
 $('#kClear').onclick = () => { // 斷開：把 Key 從本機移除
@@ -84,7 +85,9 @@ async function ask(text, silent) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + ai.key },
             body: JSON.stringify({
-                model: ai.model, temperature: 0.8, max_tokens: 600,
+                model: ai.model, temperature: 0.8, max_tokens: 1500,
+                // gpt-oss 是推理模型，推理過程也會吃 token；調成 low 才不會把回答額度用光
+                ...(/gpt-oss/.test(ai.model) ? { reasoning_effort: 'low' } : {}),
                 messages: [{ role: 'system', content: systemPrompt() }, ...history.slice(-20)]
             })
         });

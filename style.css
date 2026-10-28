@@ -377,3 +377,110 @@ select {
   margin: .25rem 0;
   font-size: .9rem
 }
+
+#fab {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 14px #0004;
+  z-index: 20
+}
+
+#chat {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 5.5rem;
+  width: min(380px, 92vw);
+  height: min(560px, 70vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px #0004;
+  z-index: 20;
+  overflow: hidden
+}
+
+#chat[hidden] {
+  display: none
+}
+
+#chat>header {
+  display: flex;
+  gap: .4rem;
+  padding: .6rem;
+  border-bottom: 1px solid var(--line)
+}
+
+#roleSel {
+  flex: 1;
+  min-width: 0
+}
+
+#customPrompt {
+  margin: .5rem;
+  resize: vertical
+}
+
+#msgs {
+  flex: 1;
+  overflow: auto;
+  padding: .75rem;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem
+}
+
+#msgs>div {
+  max-width: 85%;
+  padding: .5rem .75rem;
+  border-radius: 12px;
+  white-space: pre-wrap;
+  word-break: break-word
+}
+
+.msg-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff
+}
+
+.msg-bot {
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--ink) 9%, var(--card))
+}
+
+.msg-bot.err {
+  border: 1px solid #d9534f
+}
+
+#chat .send {
+  display: flex;
+  gap: .5rem;
+  padding: .6rem;
+  border-top: 1px solid var(--line)
+}
+
+#chat .send textarea {
+  flex: 1;
+  resize: none
+}
+
+#sendBtn:disabled {
+  opacity: .5;
+  cursor: wait
+}
+
+dialog label.chk {
+  flex-direction: row;
+  align-items: center;
+  gap: .5rem
+}

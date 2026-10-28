@@ -103,7 +103,39 @@
     </div>
   </dialog>
 
+  <button id="fab" aria-label="開啟 AI 助手">AI</button>
+  <aside id="chat" hidden aria-label="AI 助手">
+    <header>
+      <select id="roleSel" aria-label="角色"></select>
+      <button id="gear" aria-label="AI 設定">⚙</button>
+      <button id="clr" aria-label="清空對話">清空</button>
+      <button id="closeChat" aria-label="收起">×</button>
+    </header>
+    <textarea id="customPrompt" hidden rows="3" placeholder="輸入你想要的角色設定（System Prompt），例如：你是一位溫柔的學姊…"></textarea>
+    <div id="msgs" role="log" aria-live="polite"></div>
+    <div class="send">
+      <textarea id="chatIn" rows="2" placeholder="輸入訊息，Enter 送出，Shift+Enter 換行"></textarea>
+      <button id="sendBtn" class="primary">送出</button>
+    </div>
+  </aside>
+
+  <dialog id="keyDlg">
+    <h3>AI 設定</h3>
+    <p class="soon">本專案使用 Groq。Key 只會存在這個瀏覽器的 LocalStorage，不會上傳到 GitHub，也不會送到 Groq 以外的地方。
+      沒有 Key 的話可到 console.groq.com/keys 免費申請。</p>
+    <label>Groq API Key<input id="kIn" type="password" placeholder="gsk_…" autocomplete="off"></label>
+    <label>模型<input id="kModel" placeholder="llama-3.3-70b-versatile"></label>
+    <label class="chk"><input id="kAuto" type="checkbox"> 番茄鐘結束時，讓 AI 自動說一句話</label>
+    <p id="kState" class="soon"></p>
+    <div class="row">
+      <button id="kSave" class="primary">儲存並開始聊天</button>
+      <button id="kClear">清除 Key（斷開）</button>
+      <button id="kClose">關閉</button>
+    </div>
+  </dialog>
+
   <script src="app.js"></script>
+  <script src="ai.js"></script>
 </body>
 
 </html>

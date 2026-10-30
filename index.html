@@ -192,8 +192,7 @@
         </div>
       </div>
       <h3>AI 分析</h3>
-      <p class="soon">會把這段期間的專注、支出、運動、心情分數和日記送到 Groq
-        進行分析，只用你本機的資料。「專注時段」只計算用番茄鐘記錄的時間，手動修改的分鐘數不會算進去。相關係數只代表一起變動的程度，不代表因果。</p>
+      <p class="soon">會把這段期間的專注、支出、運動、心情分數和日記送到 Groq 進行分析，只用你本機的資料。「專注時段」只計算用番茄鐘記錄的時間，手動修改的分鐘數不會算進去。相關係數只代表一起變動的程度，不代表因果。</p>
       <div class="row">
         <select id="sStyle" aria-label="輸出風格">
           <option value="free">自然敘述</option>
@@ -269,8 +268,7 @@
 
     <div id="tab-qa" class="tab" hidden>
       <div class="docs">
-        <label class="filebtn">上傳文件<input id="docIn" type="file" multiple accept=".txt,.md,.markdown,.csv,.log,.pdf"
-            hidden></label>
+        <label class="filebtn">上傳文件<input id="docIn" type="file" multiple accept=".txt,.md,.markdown,.csv,.log,.pdf" hidden></label>
         <p id="docHint" class="soon">支援 .txt、.md、.csv、.pdf。AI 只會根據你上傳的內容回答。</p>
         <ul id="docList" class="list tight"></ul>
         <p id="qaNote" class="err-text"></p>
@@ -286,15 +284,12 @@
   <dialog id="keyDlg">
     <h3>AI 設定</h3>
     <p class="soon">本專案使用 Groq，所有 AI 功能共用同一把 Key。Key 只會存在這個瀏覽器的 LocalStorage，不會上傳到 GitHub，也不會送到對應服務以外的地方。
-      沒有 Groq Key 的話可到 <a href="https://console.groq.com/keys" target="_blank"
-        rel="noopener noreferrer">console.groq.com/keys</a> 免費申請。</p>
+      沒有 Groq Key 的話可到 <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">console.groq.com/keys</a> 免費申請。</p>
     <label>Groq API Key<input id="kIn" type="password" placeholder="gsk_…" autocomplete="off"></label>
     <label>模型<input id="kModel" placeholder="openai/gpt-oss-120b"></label>
     <p class="soon">天氣與匯率的 Key 是選填；沒填會自動使用免 Key 的資料來源（Open-Meteo、open.er-api.com）。</p>
-    <label>OpenWeatherMap API Key（選填，<a href="https://home.openweathermap.org/api_keys" target="_blank"
-        rel="noopener noreferrer">申請</a>）<input id="kOwm" type="password" autocomplete="off"></label>
-    <label>ExchangeRate-API Key（選填，<a href="https://www.exchangerate-api.com/" target="_blank"
-        rel="noopener noreferrer">申請</a>）<input id="kFx" type="password" autocomplete="off"></label>
+    <label>OpenWeatherMap API Key（選填，<a href="https://home.openweathermap.org/api_keys" target="_blank" rel="noopener noreferrer">申請</a>）<input id="kOwm" type="password" autocomplete="off"></label>
+    <label>ExchangeRate-API Key（選填，<a href="https://www.exchangerate-api.com/" target="_blank" rel="noopener noreferrer">申請</a>）<input id="kFx" type="password" autocomplete="off"></label>
     <label class="chk"><input id="kAuto" type="checkbox"> 讓夥伴用 AI 說話（番茄鐘結束、專注滿 30 分鐘、待辦提醒）</label>
     <p id="kState" class="soon"></p>
     <div class="row">

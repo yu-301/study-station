@@ -1,4 +1,4 @@
-Claude Style · CSS:root {
+:root {
   --bg: #eef2f5;
   --ink: #1f2a37;
   --mute: #6b7785;
@@ -430,7 +430,8 @@ select {
   resize: vertical
 }
 
-#msgs {
+#msgs,
+#qaMsgs {
   flex: 1;
   overflow: auto;
   padding: .75rem;
@@ -439,7 +440,8 @@ select {
   gap: .5rem
 }
 
-#msgs>div {
+#msgs>div,
+#qaMsgs>div {
   max-width: 85%;
   padding: .5rem .75rem;
   border-radius: 12px;
@@ -547,4 +549,316 @@ dialog label.chk {
 
 .aiout.err {
   border-color: #d9534f
+}
+
+/* ===== 新增：總覽、面板分頁、夥伴、待辦 deadline、心情、音樂、問答 ===== */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: .75rem 1rem
+}
+
+.panel h3 {
+  margin: 0 0 .5rem;
+  font-size: 1rem
+}
+
+.list.tight {
+  margin: .25rem 0 0
+}
+
+.list.tight li {
+  padding: .35rem .6rem;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0
+}
+
+.weather {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  margin-top: .6rem;
+  color: var(--mute)
+}
+
+.weather .big {
+  color: var(--ink);
+  font-size: 1.6rem
+}
+
+.err-text {
+  color: #d9534f;
+  margin: .25rem 0
+}
+
+/* 面板分頁 */
+#chat>header .tabs {
+  flex: 1;
+  display: flex;
+  gap: .25rem
+}
+
+#chat>header .tabs button {
+  background: none;
+  border-color: transparent
+}
+
+#chat>header .tabs button.on {
+  border-color: var(--accent);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--accent) 14%, var(--card))
+}
+
+.tab {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column
+}
+
+.tab[hidden] {
+  display: none
+}
+
+#tab-chat>select {
+  margin: .5rem .5rem 0
+}
+
+.tool-note {
+  display: block;
+  margin-top: .35rem;
+  color: var(--mute);
+  font-size: .75rem
+}
+
+.docs {
+  padding: .5rem .6rem 0
+}
+
+.docs .filebtn {
+  display: inline-block;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .3rem .8rem;
+  cursor: pointer
+}
+
+.docs .filebtn:hover,
+.docs .filebtn:focus-within {
+  border-color: var(--accent)
+}
+
+.docs .soon {
+  font-size: .8rem;
+  margin: .4rem 0 0
+}
+
+.docs .list li {
+  font-size: .85rem;
+  gap: .5rem
+}
+
+.docs .list .grow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap
+}
+
+details.src {
+  margin-top: .5rem;
+  font-size: .8rem;
+  color: var(--mute)
+}
+
+details.src p {
+  margin: .3rem 0
+}
+
+/* 夥伴：番茄鐘下方的小圖示 + 對話框 */
+.mascot {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  min-height: 3.4rem;
+  width: 100%
+}
+
+.mascot-icon {
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.6rem;
+  line-height: 1
+}
+
+.bubble {
+  position: relative;
+  margin: .25rem 0 0;
+  padding: .5rem .8rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--card));
+  border: 1px solid var(--line)
+}
+
+.bubble[hidden] {
+  display: none
+}
+
+.bubble::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 12px;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transform: rotate(45deg)
+}
+
+.toast {
+  position: fixed;
+  left: 1.5rem;
+  bottom: 1.5rem;
+  max-width: min(360px, 88vw);
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  padding: .6rem .8rem;
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 6px 20px #0003;
+  z-index: 30
+}
+
+.toast[hidden] {
+  display: none
+}
+
+.toast button {
+  padding: 0 .4rem;
+  border: 0;
+  background: none
+}
+
+/* 待辦 deadline */
+.duein {
+  width: 9.5rem;
+  font-size: .85rem
+}
+
+.due {
+  font-size: .8rem;
+  padding: .05rem .5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  white-space: nowrap
+}
+
+.due.s1 {
+  background: color-mix(in srgb, var(--warm) 35%, transparent)
+}
+
+.due.s2 {
+  background: color-mix(in srgb, #e8833a 40%, transparent)
+}
+
+.due.s3 {
+  background: color-mix(in srgb, #d9534f 40%, transparent)
+}
+
+#notifyBtn {
+  margin: .25rem 0 0;
+  font-size: .85rem
+}
+
+#notifyBtn[hidden] {
+  display: none
+}
+
+/* 心情 */
+.cell .mood {
+  font-weight: 400
+}
+
+.moods {
+  display: flex;
+  gap: .4rem;
+  margin-top: .3rem
+}
+
+.moods button {
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: .3rem .5rem
+}
+
+dialog .field {
+  margin: .75rem 0;
+  color: var(--mute);
+  font-size: .9rem
+}
+
+dialog a {
+  color: var(--accent)
+}
+
+/* 音樂 AI */
+.music {
+  width: 100%;
+  margin-top: .5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line)
+}
+
+.music h3 {
+  margin: 0 0 .5rem;
+  font-size: 1rem
+}
+
+.music .say {
+  margin: .6rem 0 .3rem;
+  color: var(--mute)
+}
+
+.songs {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  margin-top: .5rem
+}
+
+a.song {
+  display: block;
+  padding: .45rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  text-decoration: none
+}
+
+a.song:hover,
+a.song:focus-visible {
+  border-color: var(--accent)
+}
+
+@media (prefers-reduced-motion:no-preference) {
+  .bubble:not([hidden]) {
+    animation: pop .25s ease-out
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px)
+  }
 }

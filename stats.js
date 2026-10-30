@@ -45,10 +45,11 @@ function calc(keys) {
     const spendDay = keys.map(k => dayMoney(k));
     const byCat = {}; db.expenses.filter(e => set.has(e.date)).forEach(e => byCat[e.cat] = (byCat[e.cat] || 0) + e.amount);
     const workDay = keys.map(k => sum(dayWork(k).map(w => w.min)));
+    const stepsDay = keys.map(k => sum(dayWork(k).map(w => w.steps || 0)));
     const wk = db.workouts.filter(w => set.has(w.date));
     const moodDays = keys.map((k, i) => ({ k, mood: (db.days[k] || {}).mood || 0, focus: focus[i], work: workDay[i] })).filter(x => x.mood);
     return {
-        focus, hours, total: sum(focus), spendDay, spend: sum(spendDay), byCat, workDay, workMin: sum(workDay),
+        focus, hours, total: sum(focus), spendDay, spend: sum(spendDay), byCat, workDay, workMin: sum(workDay), stepsDay,
         workN: wk.length, steps: sum(wk.map(w => w.steps || 0)), moodDays,
         moodAvg: moodDays.length ? sum(moodDays.map(x => x.mood)) / moodDays.length : null,
         rFocus: pearson(moodDays.map(x => x.focus), moodDays.map(x => x.mood)),
@@ -61,25 +62,53 @@ function drawChart(id, cfg) {
     charts[id] = new Chart($('#' + id), cfg);
 }
 const fmtR = r => r === null ? '資料不足' : (r >= 0 ? '+' : '') + r.toFixed(2);
+// ---- 單日檢視：專注時段、當天運動（預設今天，可用箭頭切換）----
+let dayView = dkey(new Date());
+function renderDayCharts() {
+    const k = dayView, today = dkey(new Date());
+    $('#sdPick').value = k; $('#sdPick').max = today; $('#sdNext').disabled = k >= today;
+    const c = calc([k]), min = (db.days[k] || {}).focus || 0;
+    $('#sdFocusSum').textContent = `（${k === today ? '今天' : k}，共專注 ${min} 分鐘，番茄鐘記錄 ${Math.round(sum(c.hours))} 分鐘）`;
+    drawChart('cHour', {
+        type: 'bar', data: { labels: c.hours.map((_, i) => i), datasets: [{ data: c.hours.map(Math.round), backgroundColor: css('--warm') }] },
+        options: dayOpt('分鐘', '一天中的時刻（點）')
+    });
+    const wk = dayWork(k), steps = sum(wk.map(w => w.steps || 0));
+    $('#sdWorkSum').textContent = wk.length ? `（${k === today ? '今天' : k}，共 ${sum(wk.map(w => w.min))} 分鐘${steps ? '，' + steps.toLocaleString() + ' 步' : ''}）` : `（${k === today ? '今天' : k}，沒有運動紀錄）`;
+    drawChart('cWork', {
+        type: 'bar', data: { labels: wk.map((w, i) => wk.length > 1 ? `${i + 1}. ${w.type}` : w.type), datasets: [{ data: wk.map(w => w.min), backgroundColor: '#4cc38a' }] },
+        options: dayOpt('分鐘')
+    });
+}
+const dayOpt = (yTitle, xTitle) => ({
+    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: yTitle } }, x: { title: { display: !!xTitle, text: xTitle } } }
+});
+const shiftDay = n => { dayView = dkey(addDays(new Date(dayView + 'T00:00'), n)); renderDayCharts(); };
+$('#sdPrev').onclick = () => shiftDay(-1);
+$('#sdNext').onclick = () => { if (dayView < dkey(new Date())) shiftDay(1); };
+$('#sdToday').onclick = () => { dayView = dkey(new Date()); renderDayCharts(); };
+$('#sdPick').onchange = e => { if (e.target.value) { dayView = e.target.value > dkey(new Date()) ? dkey(new Date()) : e.target.value; renderDayCharts(); } };
+
 function renderStats() {
     const r = getRange(), box = $('#sCards');
     box.innerHTML = '';
-    if (!r) { box.append(mk('p', { className: 'soon' }, '請選擇有效的起訖日期。')); return; }
     if (typeof Chart === 'undefined') { box.append(mk('p', { className: 'soon' }, '圖表套件載入失敗，請檢查網路後重新整理。')); return; }
+    Chart.defaults.color = css('--mute'); Chart.defaults.borderColor = css('--line');
+    renderDayCharts(); // 單日檢視不受上面的範圍選單影響
+    if (!r) { box.append(mk('p', { className: 'soon' }, '請選擇有效的起訖日期。')); return; }
     const keys = keysOf(r.from, r.to), n = keys.length, c = calc(keys);
-    const prev = calc(keysOf(addDays(r.from, -n), addDays(r.from, -1)));
     const set = new Set(keys), days = c.focus.filter(x => x > 0).length;
     const todos = db.todos.filter(t => set.has(t.doneAt)).length;
-    const delta = prev.total ? Math.round((c.total - prev.total) / prev.total * 100) : null;
     [
         ['總專注時間', fmtMin(c.total)],
         ['有讀書的天數', `${days} / ${n} 天`],
         ['日均', fmtMin(c.total / n)],
         ['最長的一天', fmtMin(Math.max(0, ...c.focus))],
-        ['較前一段同長度期間', delta === null ? '前期無資料' : (delta >= 0 ? '+' : '') + delta + '%'],
         ['完成待辦', `${todos} 項`],
         ['總支出', `${c.spend} 元（日均 ${Math.round(c.spend / n)}）`],
         ['運動', `${c.workN} 次・${fmtMin(c.workMin)}`],
+        ['總步數', c.steps ? `${c.steps.toLocaleString()}（日均 ${Math.round(c.steps / n).toLocaleString()}）` : '沒有紀錄'],
         ['平均心情', c.moodAvg === null ? '沒有紀錄' : `${c.moodAvg.toFixed(1)} / 5（${c.moodDays.length} 天）`],
         ['心情與專注時間的相關', fmtR(c.rFocus)]
     ].forEach(([l, v]) => {
@@ -88,21 +117,15 @@ function renderStats() {
         box.append(card);
     });
 
-    Chart.defaults.color = css('--mute'); Chart.defaults.borderColor = css('--line');
-    const opt = (yTitle, xTitle, extra = {}) => ({
-        responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, title: { display: true, text: yTitle } }, x: { title: { display: !!xTitle, text: xTitle } } }, ...extra
-    });
     const labels = keys.map(k => k.slice(5));
-    drawChart('cDaily', { type: 'bar', data: { labels, datasets: [{ data: c.focus, backgroundColor: css('--accent') }] }, options: opt('分鐘') });
-    drawChart('cHour', { type: 'bar', data: { labels: c.hours.map((_, i) => i), datasets: [{ data: c.hours.map(Math.round), backgroundColor: css('--warm') }] }, options: opt('分鐘', '一天中的時刻（點）') });
-    drawChart('cSpend', { type: 'bar', data: { labels, datasets: [{ data: c.spendDay, backgroundColor: '#8b6fd1' }] }, options: opt('元') });
+    drawChart('cDaily', { type: 'bar', data: { labels, datasets: [{ data: c.focus, backgroundColor: css('--accent') }] }, options: dayOpt('分鐘') });
+    drawChart('cSpend', { type: 'bar', data: { labels, datasets: [{ data: c.spendDay, backgroundColor: '#8b6fd1' }] }, options: dayOpt('元') });
     const cats = Object.keys(c.byCat);
     drawChart('cCat', {
         type: 'doughnut', data: { labels: cats, datasets: [{ data: cats.map(k => c.byCat[k]), backgroundColor: ['#0f8b8d', '#f2b134', '#8b6fd1', '#e0675a', '#7aa874'] }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'right' } } }
     });
-    drawChart('cWork', { type: 'bar', data: { labels, datasets: [{ data: c.workDay, backgroundColor: '#4cc38a' }] }, options: opt('分鐘') });
+    drawChart('cSteps', { type: 'bar', data: { labels, datasets: [{ data: c.stepsDay, backgroundColor: '#4cc38a' }] }, options: dayOpt('步') });
     drawChart('cMood', {
         type: 'scatter', data: { datasets: [{ data: c.moodDays.map(x => ({ x: x.focus, y: x.mood })), backgroundColor: css('--accent'), pointRadius: 5 }] },
         options: {

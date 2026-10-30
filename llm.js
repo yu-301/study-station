@@ -92,26 +92,32 @@ function parseJSON(text) {
     return JSON.parse(s.slice(a, b + 1));
 }
 
-// ---- Key 設定視窗（所有 AI 功能共用同一把）----
+// ---- Key 設定視窗（Groq Key 所有 AI 功能共用；天氣、匯率的 Key 選填，沒填就用免 Key 來源）----
 let afterKey = null;
 function openKeyDlg(after) {
     afterKey = typeof after === 'function' ? after : null;
     $('#kIn').value = ai.key || '';
     $('#kModel').value = ai.model; $('#kModel').placeholder = DEFAULT_MODEL;
+    $('#kOwm').value = ai.owmKey || ''; $('#kFx').value = ai.fxKey || '';
     $('#kAuto').checked = ai.auto;
-    $('#kState').textContent = ai.key ? '目前狀態：已儲存 Key（只存在這個瀏覽器）' : '目前狀態：尚未設定 Key';
+    $('#kState').textContent = ai.key ? '目前狀態：已儲存 Groq Key（只存在這個瀏覽器）' : '目前狀態：尚未設定 Groq Key';
     $('#keyDlg').showModal();
 }
 $('#gear').onclick = () => openKeyDlg();
 $('#kClose').onclick = () => $('#keyDlg').close();
 $('#kSave').onclick = () => {
-    const k = $('#kIn').value.trim();
-    if (!k) { $('#kIn').focus(); return; }
-    ai.key = k; ai.model = $('#kModel').value.trim() || DEFAULT_MODEL; ai.auto = $('#kAuto').checked;
+    const k = $('#kIn').value.trim(), owm = $('#kOwm').value.trim(), fx = $('#kFx').value.trim();
+    if (!k && !owm && !fx) { $('#kIn').focus(); return; }
+    if (k) ai.key = k; else delete ai.key;
+    ai.model = $('#kModel').value.trim() || DEFAULT_MODEL; ai.auto = $('#kAuto').checked;
+    if (owm) ai.owmKey = owm; else delete ai.owmKey;
+    if (fx) ai.fxKey = fx; else delete ai.fxKey;
     saveAI(); $('#keyDlg').close();
-    const f = afterKey; afterKey = null; if (f) f();
+    document.dispatchEvent(new CustomEvent('keys-changed'));
+    const f = afterKey; afterKey = null; if (f && ai.key) f();
 };
-$('#kClear').onclick = () => { // 斷開：把 Key 從本機移除
-    delete ai.key; saveAI(); $('#keyDlg').close();
+$('#kClear').onclick = () => { // 斷開：把所有 Key 從本機移除
+    delete ai.key; delete ai.owmKey; delete ai.fxKey; saveAI(); $('#keyDlg').close();
     document.dispatchEvent(new CustomEvent('key-cleared'));
+    document.dispatchEvent(new CustomEvent('keys-changed'));
 };

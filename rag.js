@@ -144,7 +144,7 @@ async function askQA(q) {
 function sendQA() { const t = $('#qaIn').value.trim(); if (!t) return; $('#qaIn').value = ''; askQA(t); }
 $('#qaSend').onclick = sendQA;
 $('#qaIn').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendQA(); } };
-window.clearQA = () => { qaHist = []; qaLastQ = ''; $('#qaMsgs').innerHTML = ''; };
+function clearQA() { qaHist = []; qaLastQ = ''; $('#qaMsgs').innerHTML = ''; }
 document.addEventListener('key-cleared', clearQA);
 
 buildIndex(); renderDocs();

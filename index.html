@@ -29,7 +29,7 @@
       <div id="hToday" class="cards"></div>
       <div class="charts">
         <div class="panel">
-          <h3>天氣</h3>
+          <h3>天氣 <button id="tKeys" class="linkbtn">設定 Key</button></h3>
           <div class="row">
             <input id="cityIn" class="grow" placeholder="城市，例如 台北、Tokyo" aria-label="城市">
             <button id="cityGo">查詢</button>
@@ -41,7 +41,7 @@
           <ul id="hFx" class="list tight"></ul>
         </div>
         <div class="panel">
-          <h3>快到期的待辦</h3>
+          <h3>3 天內到期的待辦</h3>
           <ul id="hDue" class="list tight"></ul>
         </div>
         <div class="panel">
@@ -158,10 +158,6 @@
           <div class="chartbox"><canvas id="cDaily"></canvas></div>
         </div>
         <div>
-          <h3>一天中的專注時段</h3>
-          <div class="chartbox"><canvas id="cHour"></canvas></div>
-        </div>
-        <div>
           <h3>每日支出</h3>
           <div class="chartbox"><canvas id="cSpend"></canvas></div>
         </div>
@@ -170,12 +166,29 @@
           <div class="chartbox"><canvas id="cCat"></canvas></div>
         </div>
         <div>
-          <h3>每日運動時間</h3>
-          <div class="chartbox"><canvas id="cWork"></canvas></div>
+          <h3>每日步數</h3>
+          <div class="chartbox"><canvas id="cSteps"></canvas></div>
         </div>
         <div>
           <h3>心情 × 專注時間</h3>
           <div class="chartbox"><canvas id="cMood"></canvas></div>
+        </div>
+      </div>
+      <h3>單日檢視</h3>
+      <div class="row daynav">
+        <button id="sdPrev" aria-label="前一天">‹</button>
+        <input id="sdPick" type="date" aria-label="選擇日期">
+        <button id="sdNext" aria-label="後一天">›</button>
+        <button id="sdToday">今天</button>
+      </div>
+      <div class="charts">
+        <div>
+          <h3>一天中的專注時段 <span id="sdFocusSum" class="soon"></span></h3>
+          <div class="chartbox"><canvas id="cHour"></canvas></div>
+        </div>
+        <div>
+          <h3>當天運動 <span id="sdWorkSum" class="soon"></span></h3>
+          <div class="chartbox"><canvas id="cWork"></canvas></div>
         </div>
       </div>
       <h3>AI 分析</h3>
@@ -272,30 +285,48 @@
 
   <dialog id="keyDlg">
     <h3>AI 設定</h3>
-    <p class="soon">本專案使用 Groq，所有 AI 功能共用同一把 Key。Key 只會存在這個瀏覽器的 LocalStorage，不會上傳到 GitHub，也不會送到 Groq 以外的地方。
-      沒有 Key 的話可到 <a href="https://console.groq.com/keys" target="_blank"
-        rel="noopener noreferrer">console.groq.com/keys</a> 免費申請。天氣與匯率不需要另外申請 Key。</p>
+    <p class="soon">本專案使用 Groq，所有 AI 功能共用同一把 Key。Key 只會存在這個瀏覽器的 LocalStorage，不會上傳到 GitHub，也不會送到對應服務以外的地方。
+      沒有 Groq Key 的話可到 <a href="https://console.groq.com/keys" target="_blank"
+        rel="noopener noreferrer">console.groq.com/keys</a> 免費申請。</p>
     <label>Groq API Key<input id="kIn" type="password" placeholder="gsk_…" autocomplete="off"></label>
     <label>模型<input id="kModel" placeholder="openai/gpt-oss-120b"></label>
+    <p class="soon">天氣與匯率的 Key 是選填；沒填會自動使用免 Key 的資料來源（Open-Meteo、open.er-api.com）。</p>
+    <label>OpenWeatherMap API Key（選填，<a href="https://home.openweathermap.org/api_keys" target="_blank"
+        rel="noopener noreferrer">申請</a>）<input id="kOwm" type="password" autocomplete="off"></label>
+    <label>ExchangeRate-API Key（選填，<a href="https://www.exchangerate-api.com/" target="_blank"
+        rel="noopener noreferrer">申請</a>）<input id="kFx" type="password" autocomplete="off"></label>
     <label class="chk"><input id="kAuto" type="checkbox"> 讓夥伴用 AI 說話（番茄鐘結束、專注滿 30 分鐘、待辦提醒）</label>
     <p id="kState" class="soon"></p>
     <div class="row">
       <button id="kSave" class="primary">儲存</button>
-      <button id="kClear">清除 Key（斷開）</button>
+      <button id="kClear">清除所有 Key（斷開）</button>
       <button id="kClose">關閉</button>
     </div>
   </dialog>
 
-  <script src="app.js"></script>
-  <script src="llm.js"></script>
-  <script src="tools.js"></script>
-  <script src="companion.js"></script>
-  <script src="ai.js"></script>
-  <script src="rag.js"></script>
-  <script src="music.js"></script>
+  <script src="app.js?v=3"></script>
+  <script src="llm.js?v=3"></script>
+  <script src="tools.js?v=3"></script>
+  <script src="companion.js?v=3"></script>
+  <script src="ai.js?v=3"></script>
+  <script src="rag.js?v=3"></script>
+  <script src="music.js?v=3"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="stats.js"></script>
-  <script src="home.js"></script>
+  <script src="stats.js?v=3"></script>
+  <script src="home.js?v=3"></script>
+  <script>
+    // 缺檔自我檢查：新檔案沒上傳或被快取時，直接告訴你缺哪一個，不用猜 "xxx is not defined"
+    (function () {
+      const need = [['app.js', typeof save], ['llm.js', typeof callLLM], ['tools.js', typeof TOOLS], ['companion.js', typeof checkDeadlines],
+      ['ai.js', typeof openPanel], ['rag.js', typeof askQA], ['music.js', typeof recommend], ['stats.js', typeof renderStats], ['home.js', typeof renderHome]];
+      const miss = need.filter(n => n[1] === 'undefined').map(n => n[0]);
+      if (miss.length) {
+        const d = document.createElement('div'); d.className = 'missing';
+        d.textContent = '⚠ 這些檔案沒有載入成功：' + miss.join('、') + '。請確認它們都在 index.html 同一個資料夾並已上傳，再按 Ctrl+Shift+R 強制重新整理。';
+        document.body.prepend(d);
+      }
+    })();
+  </script>
 </body>
 
 </html>

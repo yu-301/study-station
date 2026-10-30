@@ -862,3 +862,30 @@ a.song:focus-visible {
     transform: translateY(4px)
   }
 }
+
+.daynav {
+  margin-bottom: .25rem
+}
+
+.daynav button:disabled {
+  opacity: .4;
+  cursor: not-allowed
+}
+
+.linkbtn {
+  font-size: .75rem;
+  padding: .1rem .5rem;
+  margin-left: .5rem;
+  vertical-align: middle
+}
+
+.missing {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: .6rem 1rem;
+  background: #d9534f;
+  color: #fff
+}

@@ -13,12 +13,12 @@
     <h1>學習儀表板</h1>
     <nav id="nav">
       <button data-view="home" class="on">今日總覽</button>
-      <button data-view="calendar">學習歷程月曆</button>
+      <button data-view="calendar">學習月曆</button>
       <button data-view="timer">專注番茄鐘</button>
       <button data-view="todo">待辦事項</button>
       <button data-view="workout">運動紀錄</button>
-      <button data-view="stats">數據統計</button>
       <button data-view="money">生活記帳</button>
+      <button data-view="stats">數據統計</button>
     </nav>
     <p class="status"><span class="dot"></span><span id="status">讀取中…</span></p>
   </aside>
@@ -69,6 +69,8 @@
         <p id="clock" class="clock">25:00</p>
         <div class="row">
           <button id="startBtn" class="primary">開始</button>
+          <button id="saveBtn" hidden title="把目前已專注的時間記錄下來，並結束這一輪">儲存目前進度</button>
+          <button id="skipBtn" hidden>略過休息</button>
           <button id="resetBtn">重設</button>
         </div>
         <p id="msg" class="msg"></p>
@@ -114,8 +116,17 @@
         <button id="todoAdd" class="primary">新增</button>
       </div>
       <p class="soon">Deadline 是選填的。設定後，夥伴會在「明天到期」「今天到期」「已逾期」時提醒你（頁面開著才會提醒）。</p>
-      <button id="notifyBtn">開啟瀏覽器通知</button>
-      <ul id="todoList" class="list"></ul>
+      <div class="row">
+        <button id="notifyBtn">開啟瀏覽器通知</button>
+      </div>
+      <p class="soon small">
+        按下後瀏覽器會詢問是否允許。允許後，只有在這個分頁於背景（你切去別的視窗或分頁）時，待辦提醒和番茄鐘結束才會用系統通知跳出來；分頁在前景時，提醒會出現在畫面左下角。若按鈕顯示「已被封鎖」，請到網址列左邊的鎖頭圖示 →
+        網站設定 → 通知，改回允許。</p>
+      <div class="row subtabs" id="todoTabs">
+        <button data-t="open" class="on">未完成 <span id="cntOpen"></span></button>
+        <button data-t="done">已完成 <span id="cntDone"></span></button>
+      </div>
+      <div id="todoList"></div>
     </section>
 
     <section id="view-workout" class="view narrow" hidden>
@@ -124,6 +135,7 @@
         <input id="wDate" type="date" aria-label="日期">
         <select id="wType" aria-label="運動類型">
           <option>跑步</option>
+          <option>走路</option>
           <option>快走</option>
           <option>重訓</option>
           <option>球類</option>
@@ -186,10 +198,6 @@
           <h3>一天中的專注時段 <span id="sdFocusSum" class="soon"></span></h3>
           <div class="chartbox"><canvas id="cHour"></canvas></div>
         </div>
-        <div>
-          <h3>當天運動 <span id="sdWorkSum" class="soon"></span></h3>
-          <div class="chartbox"><canvas id="cWork"></canvas></div>
-        </div>
       </div>
       <h3>AI 分析</h3>
       <p class="soon">會把這段期間的專注、支出、運動、心情分數和日記送到 Groq
@@ -227,7 +235,13 @@
   <dialog id="dlg">
     <h3 id="dlgTitle"></h3>
     <label>讀書時長（分鐘）<input id="dFocus" type="number" min="0"></label>
-    <label>重點標籤（用逗號分隔）<input id="dTags" placeholder="例如：作業系統, 期中複習"></label>
+    <div class="field">重點標籤
+      <div id="dTagList" class="taglist"></div>
+      <div class="row">
+        <input id="dTagIn" class="grow" placeholder="輸入標籤，按 Enter 新增" aria-label="新增重點標籤">
+        <button type="button" id="dTagAdd">新增</button>
+      </div>
+    </div>
     <div class="field">今天的心情（選填）
       <div id="dMoodRow" class="moods"></div>
     </div>
@@ -304,16 +318,16 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=3"></script>
-  <script src="llm.js?v=3"></script>
-  <script src="tools.js?v=3"></script>
-  <script src="companion.js?v=3"></script>
-  <script src="ai.js?v=3"></script>
-  <script src="rag.js?v=3"></script>
-  <script src="music.js?v=3"></script>
+  <script src="app.js?v=4"></script>
+  <script src="llm.js?v=4"></script>
+  <script src="tools.js?v=4"></script>
+  <script src="companion.js?v=4"></script>
+  <script src="ai.js?v=4"></script>
+  <script src="rag.js?v=4"></script>
+  <script src="music.js?v=4"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="stats.js?v=3"></script>
-  <script src="home.js?v=3"></script>
+  <script src="stats.js?v=4"></script>
+  <script src="home.js?v=4"></script>
   <script>
     // 缺檔自我檢查：新檔案沒上傳或被快取時，直接告訴你缺哪一個，不用猜 "xxx is not defined"
     (function () {

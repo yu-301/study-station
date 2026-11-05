@@ -889,3 +889,71 @@ a.song:focus-visible {
   background: #d9534f;
   color: #fff
 }
+
+/* ===== 待辦分頁、分組、編輯列、重點標籤 ===== */
+.subtabs {
+  margin: 1.25rem 0 .25rem
+}
+
+.subtabs button {
+  min-width: 6.5rem
+}
+
+.todohead {
+  margin: 1.25rem 0 0;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--mute)
+}
+
+.todohead+.list {
+  margin-top: .4rem
+}
+
+.small {
+  font-size: .85rem
+}
+
+.list li.editing {
+  flex-wrap: wrap
+}
+
+.list li.editing input[type=number] {
+  width: 6.5rem
+}
+
+.taglist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin: .4rem 0
+}
+
+.taglist:empty::before {
+  content: "還沒有標籤";
+  font-size: .85rem
+}
+
+.tagchip {
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  padding: .1rem .2rem .1rem .7rem;
+  border-radius: 999px;
+  font-size: .9rem;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 18%, var(--card))
+}
+
+.tagchip button {
+  border: 0;
+  background: none;
+  padding: 0 .45rem;
+  line-height: 1.4;
+  color: var(--mute);
+  border-radius: 999px
+}
+
+.tagchip button:hover {
+  color: #d9534f
+}

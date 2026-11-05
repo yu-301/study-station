@@ -49,8 +49,8 @@ document.addEventListener('pomodoro-end', e => {
     const { mode, minutes } = e.detail;
     if (mode === 'focus') {
         const today = (db.days[dkey(new Date())] || {}).focus || 0;
-        speak('done', `[系統事件] 使用者剛完成 ${minutes} 分鐘的專注，今天累計 ${today} 分鐘。請給一句具體的鼓勵或一個很短的笑話。`, FALLBACK.focusDone);
-    } else speak('rest', '[系統事件] 休息時間結束了，請簡短提醒使用者回到專注。', FALLBACK.restDone);
+        speak('done', `[系統事件] 使用者剛完成 ${minutes} 分鐘的專注，今天累計 ${today} 分鐘。請給一句具體的鼓勵或一個很短的笑話。`, FALLBACK.focusDone, { notify: '專注完成' });
+    } else speak('rest', '[系統事件] 休息時間結束了，請簡短提醒使用者回到專注。', FALLBACK.restDone, { notify: '休息結束' });
 });
 document.addEventListener('focus-milestone', e => {
     speak('milestone', `[系統事件] 使用者已連續專注 ${e.detail.minutes} 分鐘，還沒結束。請給一句勵志的話，鼓勵他撐下去。`, FALLBACK.milestone);
@@ -64,7 +64,7 @@ function checkDeadlines() {
     if (!fresh.length) return;
     fresh.sort((a, b) => dueStage(b) - dueStage(a));
     const lines = fresh.map(t => `- 「${t.text}」${STAGE_TEXT[dueStage(t)]}（deadline ${t.due}）`).join('\n');
-    fresh.forEach(t => { t.nudge = dueStage(t); }); save(); renderTodos();
+    fresh.forEach(t => { t.nudge = dueStage(t); }); save(); if (editTodo === null) renderTodos(); // 編輯中不重畫，避免洗掉正在輸入的內容
     const top = fresh[0], more = fresh.length > 1 ? `（還有 ${fresh.length - 1} 項）` : '';
     const fallback = `「${top.text}」${STAGE_TEXT[dueStage(top)]}，還沒完成喔！${more}`;
     speak('deadline', `[系統事件] 以下待辦需要提醒，使用者還沒完成：\n${lines}\n請用你的角色寫一則提醒，點名最緊急的一項，語氣符合角色，不要責罵。`, fallback, { notify: '待辦提醒' });
@@ -75,12 +75,16 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) chec
 
 // ---- 瀏覽器通知（選用：分頁在背景時也能看到提醒）----
 function paintNotify() {
-    const b = $('#notifyBtn');
-    if (!('Notification' in window)) { b.hidden = true; return; }
-    b.textContent = Notification.permission === 'granted' ? '瀏覽器通知：已開啟' : '開啟瀏覽器通知';
-    b.disabled = Notification.permission !== 'default';
+    const b = $('#notifyBtn'), p = 'Notification' in window ? Notification.permission : 'unsupported';
+    if (p === 'unsupported') { b.hidden = true; return; }
+    b.textContent = p === 'granted' ? '瀏覽器通知：已開啟（點一下測試）' : p === 'denied' ? '通知已被瀏覽器封鎖' : '開啟瀏覽器通知';
+    b.disabled = p === 'denied';
 }
-$('#notifyBtn').onclick = () => Notification.requestPermission().then(paintNotify);
+function testNotify() { try { new Notification('學習儀表板', { body: '通知正常！之後分頁在背景時，待辦提醒和番茄鐘結束會這樣跳出來。' }); } catch { } }
+$('#notifyBtn').onclick = () => {
+    if (Notification.permission === 'granted') { testNotify(); return; }
+    Notification.requestPermission().then(r => { paintNotify(); if (r === 'granted') testNotify(); });
+};
 paintNotify();
 document.addEventListener('role-changed', paintIcon);
 paintIcon();

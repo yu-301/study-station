@@ -62,7 +62,7 @@ function drawChart(id, cfg) {
     charts[id] = new Chart($('#' + id), cfg);
 }
 const fmtR = r => r === null ? '資料不足' : (r >= 0 ? '+' : '') + r.toFixed(2);
-// ---- 單日檢視：專注時段、當天運動（預設今天，可用箭頭切換）----
+// ---- 單日檢視：專注時段（預設今天，可用箭頭切換）----
 let dayView = dkey(new Date());
 function renderDayCharts() {
     const k = dayView, today = dkey(new Date());
@@ -72,12 +72,6 @@ function renderDayCharts() {
     drawChart('cHour', {
         type: 'bar', data: { labels: c.hours.map((_, i) => i), datasets: [{ data: c.hours.map(Math.round), backgroundColor: css('--warm') }] },
         options: dayOpt('分鐘', '一天中的時刻（點）')
-    });
-    const wk = dayWork(k), steps = sum(wk.map(w => w.steps || 0));
-    $('#sdWorkSum').textContent = wk.length ? `（${k === today ? '今天' : k}，共 ${sum(wk.map(w => w.min))} 分鐘${steps ? '，' + steps.toLocaleString() + ' 步' : ''}）` : `（${k === today ? '今天' : k}，沒有運動紀錄）`;
-    drawChart('cWork', {
-        type: 'bar', data: { labels: wk.map((w, i) => wk.length > 1 ? `${i + 1}. ${w.type}` : w.type), datasets: [{ data: wk.map(w => w.min), backgroundColor: '#4cc38a' }] },
-        options: dayOpt('分鐘')
     });
 }
 const dayOpt = (yTitle, xTitle) => ({
@@ -99,7 +93,7 @@ function renderStats() {
     if (!r) { box.append(mk('p', { className: 'soon' }, '請選擇有效的起訖日期。')); return; }
     const keys = keysOf(r.from, r.to), n = keys.length, c = calc(keys);
     const set = new Set(keys), days = c.focus.filter(x => x > 0).length;
-    const todos = db.todos.filter(t => set.has(t.doneAt)).length;
+    const todos = keys.reduce((n, k) => n + dayTodos(k).length, 0);
     [
         ['總專注時間', fmtMin(c.total)],
         ['有讀書的天數', `${days} / ${n} 天`],
@@ -146,7 +140,7 @@ function buildPayload(keys, c) {
     const top = c.hours.map((m, h) => [h, m]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => `${x[0]}點(${Math.round(x[1])}分)`).join('、');
     const lines = [];
     keys.forEach(k => {
-        const d = db.days[k] || {}, done = db.todos.filter(t => t.doneAt === k).map(t => t.text);
+        const d = db.days[k] || {}, done = dayTodos(k).map(t => t.text);
         const ex = db.expenses.filter(e => e.date === k), wk = dayWork(k);
         if (!(d.focus || d.notes || d.mood || (d.tags || []).length || done.length || ex.length || wk.length)) return;
         lines.push(`${k}｜專注 ${d.focus || 0} 分｜心情：${d.mood ? d.mood + '/5' : '無'}｜標籤：${(d.tags || []).join('、') || '無'}｜完成待辦：${done.join('、') || '無'}`

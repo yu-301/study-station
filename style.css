@@ -957,3 +957,171 @@ a.song:focus-visible {
 .tagchip button:hover {
   color: #d9534f
 }
+
+/* ===== 備份、熊熊挑戰、出題練習 ===== */
+.backup {
+  display: flex;
+  gap: .4rem;
+  margin: 0 .5rem
+}
+
+.side .backup button {
+  flex: 1;
+  background: none;
+  border: 1px solid #3a4756;
+  color: #c5d0da;
+  font-size: .8rem;
+  padding: .3rem .4rem
+}
+
+.side .backup button:hover {
+  border-color: var(--warm)
+}
+
+.gbar {
+  position: relative;
+  height: 18px;
+  margin: 1rem .75rem 2rem 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 12%, var(--card))
+}
+
+.gfill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width .6s
+}
+
+.gtick {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--mute)
+}
+
+.gtick span {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: .75rem;
+  color: var(--mute)
+}
+
+.gtick.hit {
+  background: var(--warm);
+  width: 3px
+}
+
+.gtick.hit span {
+  color: var(--ink);
+  font-weight: 600
+}
+
+#gMsg {
+  margin: .5rem 0 0;
+  min-height: 1.5rem
+}
+
+.stage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-content: flex-start;
+  min-height: 140px;
+  padding: 1rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px
+}
+
+.bear {
+  width: 72px;
+  height: 72px;
+  object-fit: contain
+}
+
+.bear.emoji {
+  font-size: 3rem;
+  line-height: 72px;
+  text-align: center
+}
+
+@media (prefers-reduced-motion:no-preference) {
+  .bear.new {
+    animation: bearpop .5s ease-out
+  }
+}
+
+@keyframes bearpop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(.6)
+  }
+}
+
+.gtoast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%);
+  max-width: min(420px, 88vw);
+  padding: .6rem 1rem;
+  background: var(--card);
+  border: 1px solid var(--warm);
+  border-radius: 12px;
+  box-shadow: 0 6px 20px #0003;
+  z-index: 40
+}
+
+.gtoast[hidden] {
+  display: none
+}
+
+.docs #quizBtn {
+  margin-left: .4rem
+}
+
+.quiz .qhead,
+.quiz .qtext {
+  margin: .2rem 0;
+  font-weight: 600
+}
+
+.quiz .qq {
+  margin-top: .75rem
+}
+
+.quiz button.opt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: .25rem 0
+}
+
+.quiz button.opt.right {
+  border-color: #4cc38a;
+  background: color-mix(in srgb, #4cc38a 25%, var(--card))
+}
+
+.quiz button.opt.wrong {
+  border-color: #d9534f;
+  background: color-mix(in srgb, #d9534f 25%, var(--card))
+}
+
+.quiz button:disabled {
+  cursor: default
+}
+
+.quiz .qexp {
+  margin: .25rem 0 0;
+  font-size: .9rem
+}
+
+.quiz .qscore {
+  margin: .75rem 0 0;
+  font-weight: 600
+}

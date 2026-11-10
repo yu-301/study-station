@@ -15,12 +15,18 @@
       <button data-view="home" class="on">今日總覽</button>
       <button data-view="calendar">學習月曆</button>
       <button data-view="timer">專注番茄鐘</button>
+      <button data-view="game">熊熊挑戰</button>
       <button data-view="todo">待辦事項</button>
       <button data-view="workout">運動紀錄</button>
       <button data-view="money">生活記帳</button>
       <button data-view="stats">數據統計</button>
     </nav>
     <p class="status"><span class="dot"></span><span id="status">讀取中…</span></p>
+    <div class="backup">
+      <button id="exportBtn" title="把所有資料下載成一個 .json 檔">匯出備份</button>
+      <button id="importBtn" title="選擇之前匯出的 .json 檔，換瀏覽器或換電腦時使用">匯入備份</button>
+      <input id="importIn" type="file" accept=".json,application/json" hidden>
+    </div>
   </aside>
 
   <main>
@@ -106,6 +112,27 @@
           <div id="mOut" aria-live="polite"></div>
         </div>
       </div>
+    </section>
+
+    <section id="view-game" class="view narrow" hidden>
+      <h2>熊熊挑戰</h2>
+      <div class="panel">
+        <div class="row">
+          <strong id="gTitle"></strong>
+          <span class="grow"></span>
+          <label>本週目標 <input id="gGoal" type="number" min="1" max="168" style="width:5rem"> 小時</label>
+        </div>
+        <div id="gBar" class="gbar">
+          <div id="gFill" class="gfill"></div>
+        </div>
+        <p id="gText" class="soon"></p>
+        <div id="gGifts" class="row"></div>
+        <p id="gMsg" aria-live="polite"></p>
+      </div>
+      <h3>熊熊舞台 <span id="gCount" class="soon"></span></h3>
+      <div id="gStage" class="stage"></div>
+      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊；達到目標的 25%、50%、75%、100% 時各有一次獎勵，抽到 ×N 就額外得到 N 隻。熊的圖片放在
+        assets/bears/（1.png、2.png…），新增圖片後重新整理就會加入抽獎。</p>
     </section>
 
     <section id="view-todo" class="view narrow" hidden>
@@ -285,6 +312,7 @@
       <div class="docs">
         <label class="filebtn">上傳文件<input id="docIn" type="file" multiple accept=".txt,.md,.markdown,.csv,.log,.pdf"
             hidden></label>
+        <button id="quizBtn" title="從你上傳的文件隨機出幾題選擇題">出題練習</button>
         <p id="docHint" class="soon">支援 .txt、.md、.csv、.pdf。AI 只會根據你上傳的內容回答。</p>
         <ul id="docList" class="list tight"></ul>
         <p id="qaNote" class="err-text"></p>
@@ -318,21 +346,23 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=4"></script>
-  <script src="llm.js?v=4"></script>
-  <script src="tools.js?v=4"></script>
-  <script src="companion.js?v=4"></script>
-  <script src="ai.js?v=4"></script>
-  <script src="rag.js?v=4"></script>
-  <script src="music.js?v=4"></script>
+  <script src="app.js?v=5"></script>
+  <script src="llm.js?v=5"></script>
+  <script src="tools.js?v=5"></script>
+  <script src="companion.js?v=5"></script>
+  <script src="ai.js?v=5"></script>
+  <script src="rag.js?v=5"></script>
+  <script src="music.js?v=5"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="stats.js?v=4"></script>
-  <script src="home.js?v=4"></script>
+  <script src="stats.js?v=5"></script>
+  <script src="home.js?v=5"></script>
+  <script src="game.js?v=5"></script>
+  <script src="backup.js?v=5"></script>
   <script>
     // 缺檔自我檢查：新檔案沒上傳或被快取時，直接告訴你缺哪一個，不用猜 "xxx is not defined"
     (function () {
       const need = [['app.js', typeof save], ['llm.js', typeof callLLM], ['tools.js', typeof TOOLS], ['companion.js', typeof checkDeadlines],
-      ['ai.js', typeof openPanel], ['rag.js', typeof askQA], ['music.js', typeof recommend], ['stats.js', typeof renderStats], ['home.js', typeof renderHome]];
+      ['ai.js', typeof openPanel], ['rag.js', typeof askQA], ['music.js', typeof recommend], ['stats.js', typeof renderStats], ['home.js', typeof renderHome], ['game.js', typeof renderGame], ['backup.js', typeof exportData]];
       const miss = need.filter(n => n[1] === 'undefined').map(n => n[0]);
       if (miss.length) {
         const d = document.createElement('div'); d.className = 'missing';

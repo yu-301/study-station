@@ -1,11 +1,15 @@
-// ===== 熊熊挑戰：每週專注目標 + 抽熊 =====
+// ===== 每週挑戰：每週專注目標 + 抽熊 =====
 // 規則（想調整就改這幾個常數）：
 //   1) 本週（週一到週日）每累積專注滿 1 小時，抽 1 隻熊。
 //   2) 達到目標的 25%、50%、75%、100% 時，各有 1 次「獎勵抽倍率」：抽到 ×N，就額外獲得 N 隻熊。
-//   3) 熊的圖片放在 BEAR_DIR，檔名從 1 開始編號（1.png、2.png…）；程式會自動往下找，找不到就停。
+//   3) 圖庫 = 網站 assets/ 資料夾裡的所有圖片（檔名不拘，數量不拘，不含子資料夾）。
+//      網頁沒辦法直接列出資料夾，所以用 GitHub 的 API 查檔案清單：
+//      網址是 帳號.github.io/專案名 時會自動判斷；自訂網域或判斷錯誤時，把下面 GH_REPO 填成 '帳號/專案名'。
+//      查詢結果會快取 5 分鐘（API 每小時有查詢次數限制）；查不到時改讀 assets/list.json（選用，內容是檔名陣列），再不行就用上次的快取。
 //      圖庫是空的時用 🧸 代替，所以還沒放圖片也能正常玩。
 // 需要 app.js 先載入（db、dkey、mk、$、save）
-const BEAR_DIR = 'assets/bears/', BEAR_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
+const ASSET_DIR = 'assets/', GH_REPO = '', IMG_RE = /\.(png|jpe?g|gif|webp|svg|avif)$/i;
+const POOL_KEY = 'studyhub.pool', POOL_TTL = 5 * 60000;
 const PCTS = [25, 50, 75, 100];
 const MULTS = [[1, 45], [2, 30], [3, 17], [5, 8]]; // [倍率, 權重]
 const LEVELS = ['🌱 森林新手', '🧸 見習熊', '🐻 勤奮熊', '🏅 學霸熊', '👑 熊熊王'];
@@ -25,18 +29,32 @@ function curWeek() {
     return { k, w };
 }
 
-// ---- 圖庫：依編號一張一張找 ----
+// ---- 圖庫：讀 assets/ 資料夾 ----
 let poolP = null, pool = [];
-const probe = src => new Promise(ok => { const i = new Image(); i.onload = () => ok(true); i.onerror = () => ok(false); i.src = src; });
-async function loadPool() {
-    const found = []; let ext0 = BEAR_EXTS[0];
-    for (let n = 1; n <= 300; n++) {
-        let hit = null;
-        for (const e of [ext0, ...BEAR_EXTS.filter(x => x !== ext0)]) { const src = `${BEAR_DIR}${n}.${e}`; if (await probe(src)) { hit = src; ext0 = e; break; } }
-        if (!hit) break; found.push(hit);
-    }
-    pool = found; return pool;
+function ghRepo() {
+    if (GH_REPO) return GH_REPO;
+    const m = location.hostname.match(/^([^.]+)\.github\.io$/i); if (!m) return '';
+    const first = location.pathname.split('/')[1];
+    return m[1] + '/' + (first && !/\.html?$/i.test(first) ? first : location.hostname);
 }
+async function listAssets(force) {
+    let c = null; try { c = JSON.parse(localStorage.getItem(POOL_KEY)); } catch { }
+    if (!force && c && Array.isArray(c.files) && Date.now() - c.t < POOL_TTL) return c.files;
+    let files = null; const repo = ghRepo();
+    if (repo) {
+        try {
+            const r = await fetch(`https://api.github.com/repos/${repo}/contents/${ASSET_DIR.replace(/\/$/, '')}`);
+            if (r.ok) files = (await r.json()).filter(x => x.type === 'file' && IMG_RE.test(x.name)).map(x => x.name);
+        } catch { }
+    }
+    if (!files) {
+        try { const r = await fetch(ASSET_DIR + 'list.json'); if (r.ok) files = (await r.json()).filter(n => typeof n === 'string' && IMG_RE.test(n)); } catch { }
+    }
+    if (!files) return c && Array.isArray(c.files) ? c.files : [];
+    try { localStorage.setItem(POOL_KEY, JSON.stringify({ t: Date.now(), files })); } catch { }
+    return files;
+}
+async function loadPool(force) { pool = (await listAssets(force)).map(n => ASSET_DIR + encodeURIComponent(n)); return pool; }
 const ensurePool = () => poolP || (poolP = loadPool());
 const drawBear = kind => ({ src: pool.length ? pool[Math.floor(Math.random() * pool.length)] : '', t: Date.now(), wk: mondayKey(), kind });
 function drawMult() {
@@ -53,7 +71,7 @@ async function sync(announce) {
     while (w.hours < hrs) { w.hours++; g.bears.push(drawBear('hour')); got++; }
     PCTS.forEach(p => { if (!w.ms.includes(p) && min >= Math.ceil(w.goal * 60 * p / 100)) { w.ms.push(p); hit.push(p); } });
     if (got || hit.length) save();
-    if (announce && (got || hit.length)) bearToast('🧸 ' + (got ? `本週累積 ${w.hours} 小時，抽到 ${got} 隻新熊！` : '') + (hit.length ? `達成 ${hit.join('、')}%，到「熊熊挑戰」領獎勵！` : ''));
+    if (announce && (got || hit.length)) bearToast('🧸 ' + (got ? `本週累積 ${w.hours} 小時，抽到 ${got} 隻新熊！` : '') + (hit.length ? `達成 ${hit.join('、')}%，到「每週挑戰」領獎勵！` : ''));
     renderGame();
 }
 let toastT;
@@ -100,7 +118,7 @@ function renderGame() {
     $('#gMsg').textContent = gameMsg || (got ? '已領取獎勵：' + got : '');
     const cleared = Object.values(g.weeks).filter(x => (x.ms || []).includes(100)).length;
     const uniq = new Set(g.bears.map(b => b.src).filter(Boolean)).size;
-    $('#gCount').textContent = `（共 ${g.bears.length} 隻・圖庫 ${pool.length} 款${pool.length ? '・已蒐集 ' + uniq + ' 款' : ''}・累積完成挑戰 ${cleared} 週）`;
+    $('#gCount').textContent = `（共 ${g.bears.length} 隻・圖庫 ${pool.length} 張${pool.length ? '・已蒐集 ' + uniq + ' 張' : '（assets/ 裡還沒有圖片）'}・累積完成挑戰 ${cleared} 週）`;
     const st = $('#gStage'); st.innerHTML = '';
     const list = g.bears.slice(-300), off = g.bears.length - list.length;
     list.forEach((b, i) => st.append(bearEl(b, shown >= 0 && off + i >= shown)));
@@ -115,6 +133,7 @@ $('#gGoal').onchange = e => {
     w.goal = g.goal = v; e.target.value = v; save(); sync();
 };
 $('#gGifts').onclick = e => { const b = e.target.closest('button[data-p]'); if (b) claim(+b.dataset.p); };
-document.addEventListener('viewchange', e => { if (e.detail === 'game') { gameMsg = ''; sync(); } });
+document.addEventListener('viewchange', e => { if (e.detail === 'game') { gameMsg = ''; poolP = null; sync(); } }); // 進頁面時重新讀圖庫（5 分鐘內用快取）
+$('#gReload').onclick = async () => { poolP = loadPool(true); await poolP; gameMsg = `圖庫已更新：共 ${pool.length} 張`; renderGame(); };
 document.addEventListener('pomodoro-end', e => { if (e.detail.mode === 'focus') sync(true); });
 renderGame(); sync(false);

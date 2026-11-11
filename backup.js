@@ -1,6 +1,6 @@
 // ===== 備份：匯出／匯入 JSON =====
 // 資料全存在這個瀏覽器的 localStorage；匯出成檔案後，可以在別的瀏覽器或電腦匯入。
-// 匯出內容：學習資料（含熊熊挑戰）、上傳的文件、AI 角色設定。API Key 不會匯出。
+// 匯出內容：學習資料（含每週挑戰）、上傳的文件、AI 角色設定。API Key 不會匯出。
 // 需要 app.js、llm.js、rag.js 先載入（KEY、DOCK、AIK、db、ai、dkey、mk、$）
 function exportData() {
     let docsRaw = []; try { docsRaw = JSON.parse(localStorage.getItem(DOCK)) || []; } catch { }

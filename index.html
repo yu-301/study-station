@@ -14,8 +14,8 @@
     <nav id="nav">
       <button data-view="home" class="on">今日總覽</button>
       <button data-view="calendar">學習月曆</button>
+      <button data-view="game">每週挑戰</button>
       <button data-view="timer">專注番茄鐘</button>
-      <button data-view="game">熊熊挑戰</button>
       <button data-view="todo">待辦事項</button>
       <button data-view="workout">運動紀錄</button>
       <button data-view="money">生活記帳</button>
@@ -115,7 +115,7 @@
     </section>
 
     <section id="view-game" class="view narrow" hidden>
-      <h2>熊熊挑戰</h2>
+      <h2>每週挑戰</h2>
       <div class="panel">
         <div class="row">
           <strong id="gTitle"></strong>
@@ -131,8 +131,10 @@
       </div>
       <h3>熊熊舞台 <span id="gCount" class="soon"></span></h3>
       <div id="gStage" class="stage"></div>
-      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊；達到目標的 25%、50%、75%、100% 時各有一次獎勵，抽到 ×N 就額外得到 N 隻。熊的圖片放在
-        assets/bears/（1.png、2.png…），新增圖片後重新整理就會加入抽獎。</p>
+      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊；達到目標的 25%、50%、75%、100% 時各有一次獎勵，抽到 ×N 就額外得到 N 隻。圖片請放在
+        <code>assets/</code> 資料夾（和 index.html 同一層，不要放進子資料夾），資料夾裡的每張圖都會進抽獎。新增圖片後按
+        <button id="gReload" class="linkbtn">重新讀取圖庫</button>。
+      </p>
     </section>
 
     <section id="view-todo" class="view narrow" hidden>

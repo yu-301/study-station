@@ -70,15 +70,30 @@ function update() {
     }
   }
 }
+// 把一段專注記到「實際發生的那天」：以現在為結束時間往回推，跨過 0 點就切成兩天，各記各的分鐘
+function splitFocus(end, min) {
+  const parts = []; let start = end - min * 60000, left = min;
+  while (left > 0) {
+    const s = new Date(start), mid = new Date(s); mid.setHours(24, 0, 0, 0);
+    const m = mid.getTime() >= end ? left : Math.min(left, Math.round((mid - start) / 60000));
+    if (m > 0) parts.push({ k: dkey(s), start, min: m });
+    start = mid.getTime(); left -= m;
+  }
+  return parts;
+}
+function addFocus(min) {
+  const parts = splitFocus(Date.now(), min);
+  parts.forEach(p => { const d = day(p.k); d.focus += p.min; d.sessions.push({ start: p.start, min: p.min }); });
+  save(); renderCal();
+  const today = dkey(new Date());
+  return parts.length > 1 ? `（${parts.map(p => `${p.k === today ? '今天' : p.k.slice(5)} ${p.min} 分`).join('、')}）` : '';
+}
 function finish() {
   const finished = mode;
   stop(); beep();
   if (finished === 'focus') {
-    const min = db.settings.focus, d = day(dkey(new Date()));
-    d.focus += min;
-    d.sessions.push({ start: startedAt, min });
-    save(); renderCal();
-    $('#msg').textContent = `完成！已記錄 ${min} 分鐘到今天的歷程。`;
+    const min = db.settings.focus, note = addFocus(min);
+    $('#msg').textContent = `完成！已記錄 ${min} 分鐘${note || '到今天的歷程'}。`;
   } else $('#msg').textContent = '休息結束，準備好再來一輪。';
   startedAt = null;
   // 夥伴 AI（companion.js）監聽這個事件來跳出鼓勵對話框
@@ -100,10 +115,8 @@ $('#saveBtn').onclick = () => { // 臨時要結束：把「已經專注的時間
   if (tick) left = Math.max(0, Math.round((endAt - Date.now()) / 1000)); // 先把剩餘時間更新到最新
   const min = Math.round((db.settings.focus * 60 - left) / 60);
   if (min < 1) { $('#msg').textContent = '專注還不到 1 分鐘，沒有可以儲存的時間。'; return; }
-  const d = day(dkey(new Date()));
-  d.focus += min; d.sessions.push({ start: startedAt, min });
-  save(); renderCal();
-  $('#msg').textContent = `已儲存 ${min} 分鐘到今天的歷程。`;
+  const note = addFocus(min);
+  $('#msg').textContent = `已儲存 ${min} 分鐘${note || '到今天的歷程'}。`;
   document.dispatchEvent(new CustomEvent('pomodoro-end', { detail: { mode: 'focus', minutes: min } }));
   setMode('focus');
 };

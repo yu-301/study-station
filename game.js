@@ -30,28 +30,41 @@ function curWeek() {
 }
 
 // ---- 圖庫：讀 assets/ 資料夾 ----
-let poolP = null, pool = [];
-function ghRepo() {
-    if (GH_REPO) return GH_REPO;
+let poolP = null, pool = [], poolInfo = '';
+const REPO_RE = /^[\w.-]+\/[\w.-]+$/;
+function autoRepo() { // 網址是 帳號.github.io/專案名 時自動判斷
     const m = location.hostname.match(/^([^.]+)\.github\.io$/i); if (!m) return '';
     const first = location.pathname.split('/')[1];
     return m[1] + '/' + (first && !/\.html?$/i.test(first) ? first : location.hostname);
 }
+const ghRepo = () => GH_REPO || gm().repo || autoRepo();
 async function listAssets(force) {
     let c = null; try { c = JSON.parse(localStorage.getItem(POOL_KEY)); } catch { }
-    if (!force && c && Array.isArray(c.files) && Date.now() - c.t < POOL_TTL) return c.files;
-    let files = null; const repo = ghRepo();
+    const cached = c && Array.isArray(c.files) ? c : null;
+    if (!force && cached && Date.now() - cached.t < POOL_TTL) { poolInfo = `來源：快取（${cached.from || 'GitHub'}）`; return cached.files; }
+    let files = null, from = ''; const why = [], repo = ghRepo();
     if (repo) {
         try {
             const r = await fetch(`https://api.github.com/repos/${repo}/contents/${ASSET_DIR.replace(/\/$/, '')}`);
-            if (r.ok) files = (await r.json()).filter(x => x.type === 'file' && IMG_RE.test(x.name)).map(x => x.name);
+            if (r.ok) {
+                const all = await r.json();
+                if (Array.isArray(all)) { files = all.filter(x => x.type === 'file' && IMG_RE.test(x.name)).map(x => x.name); from = `GitHub：${repo}`; if (!files.length) why.push(`${repo} 的 ${ASSET_DIR} 裡沒有圖片（支援 png、jpg、gif、webp、svg、avif）`); }
+                else why.push(`${repo} 裡的 ${ASSET_DIR.replace(/\/$/, '')} 不是資料夾`);
+            } else why.push(`GitHub 回應 ${r.status}（${repo}）` + (r.status === 404 ? '：找不到這個專案或 assets 資料夾，或專案是私人的' : r.status === 403 ? '：查詢次數超過限制，稍後再試' : ''));
+        } catch { why.push('連不上 GitHub'); }
+    } else why.push('無法判斷 GitHub 專案（網址不是「帳號.github.io/專案名」），請在下方「圖庫設定」填入');
+    if (!files || !files.length) {
+        try {
+            const r = await fetch(ASSET_DIR + 'list.json');
+            if (r.ok) { const f = (await r.json()).filter(n => typeof n === 'string' && IMG_RE.test(n)); if (f.length) { files = f; from = ASSET_DIR + 'list.json'; } }
         } catch { }
     }
-    if (!files) {
-        try { const r = await fetch(ASSET_DIR + 'list.json'); if (r.ok) files = (await r.json()).filter(n => typeof n === 'string' && IMG_RE.test(n)); } catch { }
+    if (!files || !files.length) {
+        if (cached && cached.files.length) { poolInfo = `讀取失敗，先用上次的結果：${why.join('；')}`; return cached.files; }
+        poolInfo = '讀不到圖庫：' + (why.join('；') || '沒有圖片'); return files || [];
     }
-    if (!files) return c && Array.isArray(c.files) ? c.files : [];
-    try { localStorage.setItem(POOL_KEY, JSON.stringify({ t: Date.now(), files })); } catch { }
+    poolInfo = '來源：' + from;
+    try { localStorage.setItem(POOL_KEY, JSON.stringify({ t: Date.now(), files, from })); } catch { }
     return files;
 }
 async function loadPool(force) { pool = (await listAssets(force)).map(n => ASSET_DIR + encodeURIComponent(n)); return pool; }
@@ -67,10 +80,11 @@ function drawMult() {
 async function sync(announce) {
     await ensurePool(); // 之後的區塊沒有 await，所以同時觸發兩次也不會重複發熊
     const g = gm(), { k, w } = curWeek(), min = weekMinutes(k), hrs = Math.floor(min / 60), hit = [];
-    let got = 0;
+    let got = 0, healed = 0;
+    if (pool.length) g.bears.forEach(b => { if (!b.src || /^assets\/bears\//.test(b.src)) { b.src = pool[Math.floor(Math.random() * pool.length)]; healed++; } }); // 圖庫還是空的時抽到的熊，補上圖片
     while (w.hours < hrs) { w.hours++; g.bears.push(drawBear('hour')); got++; }
     PCTS.forEach(p => { if (!w.ms.includes(p) && min >= Math.ceil(w.goal * 60 * p / 100)) { w.ms.push(p); hit.push(p); } });
-    if (got || hit.length) save();
+    if (got || hit.length || healed) save();
     if (announce && (got || hit.length)) bearToast('🧸 ' + (got ? `本週累積 ${w.hours} 小時，抽到 ${got} 隻新熊！` : '') + (hit.length ? `達成 ${hit.join('、')}%，到「每週挑戰」領獎勵！` : ''));
     renderGame();
 }
@@ -116,6 +130,7 @@ function renderGame() {
     w.ms.filter(p => !w.used.includes(p)).forEach(p => { const b = mk('button', { className: 'primary' }, `🎁 達成 ${p}%：抽倍率`); b.dataset.p = p; gifts.append(b); });
     const got = Object.entries(w.res).map(([p, m]) => `${p}% ×${m}`).join('、');
     $('#gMsg').textContent = gameMsg || (got ? '已領取獎勵：' + got : '');
+    $('#gPoolInfo').textContent = '圖庫　' + poolInfo; if (document.activeElement !== $('#gRepo')) $('#gRepo').value = gm().repo || autoRepo();
     const cleared = Object.values(g.weeks).filter(x => (x.ms || []).includes(100)).length;
     const uniq = new Set(g.bears.map(b => b.src).filter(Boolean)).size;
     $('#gCount').textContent = `（共 ${g.bears.length} 隻・圖庫 ${pool.length} 張${pool.length ? '・已蒐集 ' + uniq + ' 張' : '（assets/ 裡還沒有圖片）'}・累積完成挑戰 ${cleared} 週）`;
@@ -134,6 +149,11 @@ $('#gGoal').onchange = e => {
 };
 $('#gGifts').onclick = e => { const b = e.target.closest('button[data-p]'); if (b) claim(+b.dataset.p); };
 document.addEventListener('viewchange', e => { if (e.detail === 'game') { gameMsg = ''; poolP = null; sync(); } }); // 進頁面時重新讀圖庫（5 分鐘內用快取）
-$('#gReload').onclick = async () => { poolP = loadPool(true); await poolP; gameMsg = `圖庫已更新：共 ${pool.length} 張`; renderGame(); };
+$('#gRepoSave').onclick = async () => {
+    const v = $('#gRepo').value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
+    if (v && !REPO_RE.test(v)) { gameMsg = '格式不對，請填「帳號/專案名」，例如 yu/study-station'; renderGame(); return; }
+    gm().repo = v; save(); poolP = loadPool(true); await poolP; gameMsg = `圖庫已更新：共 ${pool.length} 張`; sync(); // sync 會順便補上舊熊的圖片
+};
+$('#gReload').onclick = async () => { poolP = loadPool(true); await poolP; gameMsg = `圖庫已更新：共 ${pool.length} 張`; sync(); };
 document.addEventListener('pomodoro-end', e => { if (e.detail.mode === 'focus') sync(true); });
 renderGame(); sync(false);

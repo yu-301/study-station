@@ -122,19 +122,24 @@
           <span class="grow"></span>
           <label>本週目標 <input id="gGoal" type="number" min="1" max="168" style="width:5rem"> 小時</label>
         </div>
-        <div id="gBar" class="gbar">
-          <div id="gFill" class="gfill"></div>
-        </div>
+        <div id="gBar" class="gbar"><div id="gFill" class="gfill"></div></div>
         <p id="gText" class="soon"></p>
         <div id="gGifts" class="row"></div>
         <p id="gMsg" aria-live="polite"></p>
       </div>
       <h3>熊熊舞台 <span id="gCount" class="soon"></span></h3>
       <div id="gStage" class="stage"></div>
-      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊；達到目標的 25%、50%、75%、100% 時各有一次獎勵，抽到 ×N 就額外得到 N 隻。圖片請放在
-        <code>assets/</code> 資料夾（和 index.html 同一層，不要放進子資料夾），資料夾裡的每張圖都會進抽獎。新增圖片後按
-        <button id="gReload" class="linkbtn">重新讀取圖庫</button>。
-      </p>
+      <p id="gPoolInfo" class="soon small"></p>
+      <details class="small">
+        <summary>圖庫設定</summary>
+        <div class="row">
+          <input id="gRepo" class="grow" placeholder="帳號/專案名，例如 yu/study-station" aria-label="GitHub 專案（帳號/專案名）">
+          <button id="gRepoSave">儲存並重新讀取</button>
+        </div>
+        <p class="soon small">網址是「帳號.github.io/專案名」時會自動判斷；在本機測試或用自訂網域時，請在這裡填你的 GitHub 專案。</p>
+      </details>
+      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊；達到目標的 25%、50%、75%、100% 時各有一次獎勵，抽到 ×N 就額外得到 N 隻。圖片請放在 <code>assets/</code> 資料夾（和 index.html 同一層，不要放進子資料夾），資料夾裡的每張圖都會進抽獎。新增圖片後按
+        <button id="gReload" class="linkbtn">重新讀取圖庫</button>。</p>
     </section>
 
     <section id="view-todo" class="view narrow" hidden>
@@ -148,9 +153,7 @@
       <div class="row">
         <button id="notifyBtn">開啟瀏覽器通知</button>
       </div>
-      <p class="soon small">
-        按下後瀏覽器會詢問是否允許。允許後，只有在這個分頁於背景（你切去別的視窗或分頁）時，待辦提醒和番茄鐘結束才會用系統通知跳出來；分頁在前景時，提醒會出現在畫面左下角。若按鈕顯示「已被封鎖」，請到網址列左邊的鎖頭圖示 →
-        網站設定 → 通知，改回允許。</p>
+      <p class="soon small">按下後瀏覽器會詢問是否允許。允許後，只有在這個分頁於背景（你切去別的視窗或分頁）時，待辦提醒和番茄鐘結束才會用系統通知跳出來；分頁在前景時，提醒會出現在畫面左下角。若按鈕顯示「已被封鎖」，請到網址列左邊的鎖頭圖示 → 網站設定 → 通知，改回允許。</p>
       <div class="row subtabs" id="todoTabs">
         <button data-t="open" class="on">未完成 <span id="cntOpen"></span></button>
         <button data-t="done">已完成 <span id="cntDone"></span></button>

@@ -15,6 +15,7 @@
       <button data-view="home" class="on">今日總覽</button>
       <button data-view="calendar">學習月曆</button>
       <button data-view="game">每週挑戰</button>
+      <button data-view="plan">讀書計畫</button>
       <button data-view="timer">專注番茄鐘</button>
       <button data-view="todo">待辦事項</button>
       <button data-view="workout">運動紀錄</button>
@@ -121,13 +122,23 @@
           <strong id="gTitle"></strong>
           <span class="grow"></span>
           <label>本週目標 <input id="gGoal" type="number" min="1" max="168" style="width:5rem"> 小時</label>
+          <button id="gAI" title="讓 AI 看過去幾週的專注時數，說說表現並建議下週目標">🎯 目標 AI</button>
         </div>
-        <div id="gBar" class="gbar"><div id="gFill" class="gfill"></div></div>
+        <div id="gBar" class="gbar">
+          <div id="gFill" class="gfill"></div>
+        </div>
         <p id="gText" class="soon"></p>
         <div id="gGifts" class="row"></div>
         <p id="gMsg" aria-live="polite"></p>
+        <div id="gAIout" class="aiout" aria-live="polite"></div>
+        <div id="gAIact" class="row" hidden>
+          <button id="gApplyNext" class="primary"></button>
+          <button id="gApplyNow"></button>
+        </div>
       </div>
       <h3>熊熊舞台 <span id="gCount" class="soon"></span></h3>
+      <label class="rtoggle"><input id="gRoam" type="checkbox"> 讓本週的熊在畫面底部走動 <span id="gRoamNote"
+          class="soon small"></span></label>
       <div id="gStage" class="stage"></div>
       <p id="gPoolInfo" class="soon small"></p>
       <details class="small">
@@ -138,8 +149,46 @@
         </div>
         <p class="soon small">網址是「帳號.github.io/專案名」時會自動判斷；在本機測試或用自訂網域時，請在這裡填你的 GitHub 專案。</p>
       </details>
-      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊；達到目標的 25%、50%、75%、100% 時各有一次獎勵，抽到 ×N 就額外得到 N 隻。圖片請放在 <code>assets</code> 資料夾（和 index.html 同一層，不要放進子資料夾），資料夾裡的每張圖都會進抽獎。新增圖片後按
-        <button id="gReload" class="linkbtn">重新讀取圖庫</button>。</p>
+      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊（超過本週目標後，改成每多專注 5 小時抽 1 隻）；達到目標的 25%、50%、75%、100% 時各有一次獎勵，抽到 ×N 就額外得到 N
+        隻；其中 50% 和 100% 另外保證直接送 1 隻。熊舞台只顯示本週的熊，每週一重新累積（歷史累積數量仍保留）。圖片請放在 <code>assets</code> 資料夾（和 index.html
+        同一層，不要放進子資料夾），資料夾裡的每張圖都會進抽獎。新增圖片後按
+        <button id="gReload" class="linkbtn">重新讀取圖庫</button>。
+      </p>
+    </section>
+
+    <section id="view-plan" class="view narrow" hidden>
+      <h2>讀書計畫</h2>
+      <p class="soon">三步驟：① 點選你有空的時段（可按住拖曳）→ ② 確認待辦的預估番茄鐘 → ③ 讓 AI 排程。AI 會參考待辦的
+        deadline、你過去的專注時段與每週目標；排好之後程式會再檢查一次有沒有排進你沒勾的時間。</p>
+      <div class="panel">
+        <h3>① 哪些時段有空？</h3>
+        <div class="row">
+          <label>規劃 <select id="pWeek">
+              <option value="next">下週</option>
+              <option value="this">本週（還沒過的時段）</option>
+            </select></label>
+          <label>每天最多排 <input id="pCap" type="number" min="1" max="12" style="width:4.5rem"> 格（小時）</label>
+          <label class="rtoggle"><input id="pNight" type="checkbox"> 顯示 0～5 點</label>
+        </div>
+        <div class="row" id="pPresets">
+          <button data-p="eve">加上：平日 19–22 點</button>
+          <button data-p="wkend">加上：週末 9–17 點</button>
+          <button data-p="clear">全部清除</button>
+        </div>
+        <div id="pGrid" class="pgrid" role="group" aria-label="一週空檔表"></div>
+        <p id="pAvailSum" class="soon small"></p>
+        <p id="pPeak" class="soon small"></p>
+      </div>
+      <div class="panel">
+        <h3>② 待辦要花多久？</h3>
+        <p class="soon small">預估幾個番茄鐘是選填；沒填的，AI 會依名稱與 deadline 自己估（結果會標示「AI 估」）。</p>
+        <ul id="pTodos" class="list tight"></ul>
+      </div>
+      <div class="row">
+        <button id="pGo" class="primary">③ 請 AI 排程</button>
+        <span id="pNote" class="soon" aria-live="polite"></span>
+      </div>
+      <div id="pResult" class="plresult"></div>
     </section>
 
     <section id="view-todo" class="view narrow" hidden>
@@ -153,7 +202,9 @@
       <div class="row">
         <button id="notifyBtn">開啟瀏覽器通知</button>
       </div>
-      <p class="soon small">按下後瀏覽器會詢問是否允許。允許後，只有在這個分頁於背景（你切去別的視窗或分頁）時，待辦提醒和番茄鐘結束才會用系統通知跳出來；分頁在前景時，提醒會出現在畫面左下角。若按鈕顯示「已被封鎖」，請到網址列左邊的鎖頭圖示 → 網站設定 → 通知，改回允許。</p>
+      <p class="soon small">
+        按下後瀏覽器會詢問是否允許。允許後，只有在這個分頁於背景（你切去別的視窗或分頁）時，待辦提醒和番茄鐘結束才會用系統通知跳出來；分頁在前景時，提醒會出現在畫面左下角。若按鈕顯示「已被封鎖」，請到網址列左邊的鎖頭圖示 →
+        網站設定 → 通知，改回允許。</p>
       <div class="row subtabs" id="todoTabs">
         <button data-t="open" class="on">未完成 <span id="cntOpen"></span></button>
         <button data-t="done">已完成 <span id="cntDone"></span></button>
@@ -351,23 +402,25 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=5"></script>
-  <script src="llm.js?v=5"></script>
-  <script src="tools.js?v=5"></script>
-  <script src="companion.js?v=5"></script>
-  <script src="ai.js?v=5"></script>
-  <script src="rag.js?v=5"></script>
-  <script src="music.js?v=5"></script>
+  <script src="app.js?v=6"></script>
+  <script src="llm.js?v=6"></script>
+  <script src="tools.js?v=6"></script>
+  <script src="companion.js?v=6"></script>
+  <script src="ai.js?v=6"></script>
+  <script src="rag.js?v=6"></script>
+  <script src="music.js?v=6"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="stats.js?v=5"></script>
-  <script src="home.js?v=5"></script>
-  <script src="game.js?v=5"></script>
-  <script src="backup.js?v=5"></script>
+  <script src="stats.js?v=6"></script>
+  <script src="home.js?v=6"></script>
+  <script src="game.js?v=6"></script>
+  <script src="plan.js?v=6"></script>
+  <script src="roam.js?v=6"></script>
+  <script src="backup.js?v=6"></script>
   <script>
     // 缺檔自我檢查：新檔案沒上傳或被快取時，直接告訴你缺哪一個，不用猜 "xxx is not defined"
     (function () {
       const need = [['app.js', typeof save], ['llm.js', typeof callLLM], ['tools.js', typeof TOOLS], ['companion.js', typeof checkDeadlines],
-      ['ai.js', typeof openPanel], ['rag.js', typeof askQA], ['music.js', typeof recommend], ['stats.js', typeof renderStats], ['home.js', typeof renderHome], ['game.js', typeof renderGame], ['backup.js', typeof exportData]];
+      ['ai.js', typeof openPanel], ['rag.js', typeof askQA], ['music.js', typeof recommend], ['stats.js', typeof renderStats], ['home.js', typeof renderHome], ['game.js', typeof renderGame], ['plan.js', typeof renderPlan], ['roam.js', typeof roamRefresh], ['backup.js', typeof exportData]];
       const miss = need.filter(n => n[1] === 'undefined').map(n => n[0]);
       if (miss.length) {
         const d = document.createElement('div'); d.className = 'missing';

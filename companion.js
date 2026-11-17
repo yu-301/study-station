@@ -6,10 +6,12 @@ const FALLBACK = {
     focusDone: ['完成一輪專注，幹得好！先站起來伸展一下。', '又穩穩收下一個番茄，進度正在累積。', '專注完成，喝口水再繼續。'],
     restDone: ['休息結束，回到座位，下一輪開始吧。', '電充飽了，準備好再專注一輪？'],
     milestone: ['已經連續專注 30 分鐘了，保持住。', '30 分鐘過去了，狀態很穩。', '專注持續中，你比你想的更能撐。'],
-    tap: ['我在這裡陪你。', '先做最小的那一步就好。', '今天的你已經比昨天往前一點了。']
+    tap: ['我在這裡陪你。', '先做最小的那一步就好。', '今天的你已經比昨天往前一點了。'],
+    bear: ['又抽到新熊了，熊熊舞台越來越熱鬧！', '新熊報到！這是你專注換來的。', '熊熊 +1，繼續保持。'],
+    bear5: ['×5！！一口氣多了五隻熊，太厲害了！', '大獎！五隻熊衝進舞台，今天你最閃亮！']
 };
 const pick = a => a[Math.floor(Math.random() * a.length)];
-let compBusy = false, toastTimer = null;
+let compBusy = false, toastTimer = null, queuedSpeak = null;
 
 function paintIcon() { const i = roleInfo().icon; $('#mascotIcon').textContent = i; $('#toastIcon').textContent = i; }
 function currentView() { const v = document.querySelector('.view:not([hidden])'); return v ? v.id.replace('view-', '') : ''; }
@@ -32,6 +34,9 @@ $('#mascotIcon').onclick = () => speak('tap', '使用者點了你一下，想要
 // 讓目前角色說一句話。能用 AI 就用 AI，失敗或沒開就用備用句子。
 async function speak(kind, situation, fallbackList, opt = {}) {
     const fallback = typeof fallbackList === 'string' ? fallbackList : pick(fallbackList);
+    // opt.queue：不要蓋掉正在說的話。AI 還在想就排隊等它說完；沒開 AI 時晚幾秒再出現
+    if (opt.queue && compBusy) { queuedSpeak = [kind, situation, fallbackList, opt]; return; }
+    if (opt.queue && (!ai.key || !ai.auto)) { setTimeout(() => say(fallback, opt), 4000); return; }
     if (!ai.key || !ai.auto || compBusy) { say(fallback, opt); return; }
     compBusy = true; $('#bubble').hidden = false; $('#bubble').textContent = '…';
     try {
@@ -42,6 +47,7 @@ async function speak(kind, situation, fallbackList, opt = {}) {
         say(text || fallback, opt);
     } catch { say(fallback, opt); }
     compBusy = false;
+    if (queuedSpeak) { const q = queuedSpeak; queuedSpeak = null; speak(...q); }
 }
 
 // ---- 番茄鐘事件 ----
@@ -54,6 +60,18 @@ document.addEventListener('pomodoro-end', e => {
 });
 document.addEventListener('focus-milestone', e => {
     speak('milestone', `[系統事件] 使用者已連續專注 ${e.detail.minutes} 分鐘，還沒結束。請給一句勵志的話，鼓勵他撐下去。`, FALLBACK.milestone);
+});
+
+// ---- 抽到熊：由角色慶祝（game.js 發出 bears-drawn）----
+// 新熊（時數、里程碑）每次都說一句；獎勵抽倍率只有抽到 ×5 才特別慶祝，×1～×3 畫面上已經有顯示，不多打擾。
+document.addEventListener('bears-drawn', e => {
+    const d = e.detail || {};
+    if (d.bonus && d.mult < 5) return;
+    const big = d.bonus && d.mult >= 5;
+    speak(big ? 'bear5' : 'bear',
+        big ? '[系統事件] 使用者在每週挑戰的獎勵抽倍率抽到最高的 ×5，一次多了 5 隻熊！請熱烈慶祝。'
+            : `[系統事件] 使用者靠專注累積，剛抽到 ${d.count} 隻新熊${d.milestone ? '（含達成里程碑的保證熊）' : ''}。請簡短慶祝。`,
+        big ? FALLBACK.bear5 : FALLBACK.bear, { queue: true });
 });
 
 // ---- 待辦 deadline 提醒 ----

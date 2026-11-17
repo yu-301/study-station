@@ -1,8 +1,10 @@
 // ===== 每週挑戰：每週專注目標 + 抽熊 =====
 // 規則（想調整就改這幾個常數）：
-//   1) 本週（週一到週日）每累積專注滿 1 小時，抽 1 隻熊。
+//   1) 本週（週一到週日）每累積專注滿 1 小時，抽 1 隻熊；超過本週目標之後，改成每多累積 OVER_STEP_H 小時抽 1 隻。
 //   2) 達到目標的 25%、50%、75%、100% 時，各有 1 次「獎勵抽倍率」：抽到 ×N，就額外獲得 N 隻熊。
-//   3) 圖庫 = 網站 assets 資料夾裡的所有圖片（檔名不拘，數量不拘，不含子資料夾）。
+//      其中 GUARANTEE 列的百分比（預設 50%、100%）達成時，另外「保證直接送 1 隻」，不用抽。
+//   3) 熊舞台只顯示「本週」的熊；每週一從 0 重新累積。歷史累積數量仍然保留（顯示在標題旁）。
+//   4) 圖庫 = 網站 assets 資料夾裡的所有圖片（檔名不拘，數量不拘，不含子資料夾）。
 //      網頁沒辦法直接列出資料夾，所以用 GitHub 的 API 查檔案清單：
 //      網址是 帳號.github.io/專案名 時會自動判斷；自訂網域或判斷錯誤時，把下面 GH_REPO 填成 '帳號/專案名'。
 //      查詢結果會快取 5 分鐘（API 每小時有查詢次數限制）；查不到時改讀 assets list.json（選用，內容是檔名陣列），再不行就用上次的快取。
@@ -12,6 +14,9 @@ const ASSET_DIR = 'assets/', GH_REPO = '', IMG_RE = /\.(png|jpe?g|gif|webp|svg|a
 const POOL_KEY = 'studyhub.pool', POOL_TTL = 5 * 60000;
 const PCTS = [25, 50, 75, 100];
 const MULTS = [[1, 45], [2, 30], [3, 17], [5, 8]]; // [倍率, 權重]
+const GUARANTEE = [50, 100]; // 達到這些 % 時，保證直接送 1 隻熊
+const OVER_STEP_H = 5;       // 超過本週目標後，每多專注幾小時抽 1 隻
+const hourBears = (hrs, goalH) => Math.min(hrs, goalH) + Math.floor(Math.max(0, hrs - goalH) / OVER_STEP_H); // 依累積小時應得的「時數熊」
 const LEVELS = ['🌱 森林新手', '🧸 見習熊', '🐻 勤奮熊', '🏅 學霸熊', '👑 熊熊王'];
 
 // 遊戲資料放在 db.game（和其他學習資料一起備份）：{ goal, weeks:{週一日期:{goal,hours,ms,used,res}}, bears:[{src,t,wk,kind}] }
@@ -69,6 +74,7 @@ async function listAssets(force) {
 }
 async function loadPool(force) { pool = (await listAssets(force)).map(n => ASSET_DIR + encodeURIComponent(n)); return pool; }
 const ensurePool = () => poolP || (poolP = loadPool());
+function weekBears() { const { k } = curWeek(); return gm().bears.filter(b => b.wk === k); } // 本週的熊（舞台、走動小熊都用這個）
 const drawBear = kind => ({ src: pool.length ? pool[Math.floor(Math.random() * pool.length)] : '', t: Date.now(), wk: mondayKey(), kind });
 function drawMult() {
     let r = Math.random() * MULTS.reduce((s, m) => s + m[1], 0);
@@ -80,12 +86,22 @@ function drawMult() {
 async function sync(announce) {
     await ensurePool(); // 之後的區塊沒有 await，所以同時觸發兩次也不會重複發熊
     const g = gm(), { k, w } = curWeek(), min = weekMinutes(k), hrs = Math.floor(min / 60), hit = [];
-    let got = 0, healed = 0;
+    let got = 0, sure = 0, healed = 0;
     if (pool.length) g.bears.forEach(b => { if (!b.src || /^assets\/bears\//.test(b.src)) { b.src = pool[Math.floor(Math.random() * pool.length)]; healed++; } }); // 圖庫還是空的時抽到的熊，補上圖片
-    while (w.hours < hrs) { w.hours++; g.bears.push(drawBear('hour')); got++; }
-    PCTS.forEach(p => { if (!w.ms.includes(p) && min >= Math.ceil(w.goal * 60 * p / 100)) { w.ms.push(p); hit.push(p); } });
-    if (got || hit.length || healed) save();
-    if (announce && (got || hit.length)) bearToast('🧸 ' + (got ? `本週累積 ${w.hours} 小時，抽到 ${got} 隻新熊！` : '') + (hit.length ? `達成 ${hit.join('、')}%，到「每週挑戰」領獎勵！` : ''));
+    const due = hourBears(hrs, w.goal); // w.hours 現在代表「已經依時數發出幾隻」
+    while (w.hours < due) { w.hours++; g.bears.push(drawBear('hour')); got++; }
+    PCTS.forEach(p => {
+        if (!w.ms.includes(p) && min >= Math.ceil(w.goal * 60 * p / 100)) {
+            w.ms.push(p); hit.push(p);
+            if (GUARANTEE.includes(p)) { g.bears.push(drawBear('milestone')); sure++; }
+        }
+    });
+    if (got || sure || hit.length || healed) save();
+    if (announce && (got || sure || hit.length)) {
+        const gifts = hit.filter(p => !w.used.includes(p));
+        bearToast('🧸 ' + (got + sure ? `抽到 ${got + sure} 隻新熊！（本週共 ${weekBears().length} 隻）` : '') + (gifts.length ? ` 達成 ${gifts.join('、')}%，到「每週挑戰」領獎勵！` : ''));
+        if (got + sure) document.dispatchEvent(new CustomEvent('bears-drawn', { detail: { count: got + sure, milestone: sure > 0 } }));
+    }
     renderGame();
 }
 let toastT;
@@ -104,13 +120,14 @@ function claim(p) {
     for (let i = 0; i < m; i++) g.bears.push(drawBear('bonus'));
     gameMsg = `🎁 ${p}% 獎勵：抽到 ×${m}！額外獲得 ${m} 隻熊`;
     save(); renderGame();
+    document.dispatchEvent(new CustomEvent('bears-drawn', { detail: { count: m, bonus: true, mult: m } })); // 夥伴 AI 只在 ×5 時特別慶祝
 }
 
 // ---- 畫面 ----
-let shown = -1; // 已經畫過幾隻；之後新增的才會有登場動畫
+let shown = -1, shownWk = ''; // 已經畫過幾隻（只算本週）；之後新增的才會有登場動畫
 const fmtH = m => (m / 60).toFixed(1);
 function bearEl(b, isNew) {
-    const tip = `${b.kind === 'bonus' ? '獎勵' : '每小時'}・${new Date(b.t).toLocaleDateString('zh-TW')}`;
+    const tip = `${b.kind === 'bonus' ? '獎勵' : b.kind === 'milestone' ? '里程碑保證' : '專注時數'}・${new Date(b.t).toLocaleDateString('zh-TW')}`;
     const emoji = () => mk('span', { className: 'bear emoji' + (isNew ? ' new' : ''), title: tip }, '🧸');
     if (!b.src) return emoji();
     const img = mk('img', { className: 'bear' + (isNew ? ' new' : ''), src: b.src, alt: '熊', title: tip, loading: 'lazy' });
@@ -119,12 +136,15 @@ function bearEl(b, isNew) {
 }
 function renderGame() {
     const g = gm(), { k, w } = curWeek(), min = weekMinutes(k), goalMin = w.goal * 60, pct = Math.min(100, min / goalMin * 100);
+    const mine = weekBears();
+    if (shownWk !== k) { shownWk = k; shown = -1; } // 換週：舞台清空重來，不放登場動畫
+    const stepMin = OVER_STEP_H * 60, nextMin = min < goalMin ? 60 - min % 60 : stepMin - (min - goalMin) % stepMin;
     if (document.activeElement !== $('#gGoal')) $('#gGoal').value = w.goal;
     $('#gTitle').textContent = `${LEVELS[w.ms.length]}　本週挑戰（${k.slice(5).replace('-', '/')} 起）`;
     $('#gFill').style.width = pct + '%';
     document.querySelectorAll('#gBar .gtick').forEach(t => t.classList.toggle('hit', w.ms.includes(+t.dataset.p)));
     const next = PCTS.find(p => !w.ms.includes(p));
-    $('#gText').textContent = `${fmtH(min)} / ${w.goal} 小時（${Math.floor(pct)}%）・本週抽到 ${w.hours} 隻・再專注 ${60 - min % 60} 分鐘抽下一隻`
+    $('#gText').textContent = `${fmtH(min)} / ${w.goal} 小時（${Math.floor(pct)}%）・本週抽到 ${mine.length} 隻・再專注 ${nextMin} 分鐘抽下一隻${min >= goalMin ? `（超過目標後每 ${OVER_STEP_H} 小時 1 隻）` : ''}`
         + (next ? `・下一個獎勵 ${next}%（還差 ${fmtH(Math.ceil(goalMin * next / 100) - min)} 小時）` : '・🎉 本週挑戰完成！');
     const gifts = $('#gGifts'); gifts.innerHTML = '';
     w.ms.filter(p => !w.used.includes(p)).forEach(p => { const b = mk('button', { className: 'primary' }, `🎁 達成 ${p}%：抽倍率`); b.dataset.p = p; gifts.append(b); });
@@ -133,12 +153,13 @@ function renderGame() {
     $('#gPoolInfo').textContent = '圖庫　' + poolInfo; if (document.activeElement !== $('#gRepo')) $('#gRepo').value = gm().repo || autoRepo();
     const cleared = Object.values(g.weeks).filter(x => (x.ms || []).includes(100)).length;
     const uniq = new Set(g.bears.map(b => b.src).filter(Boolean)).size;
-    $('#gCount').textContent = `（共 ${g.bears.length} 隻・圖庫 ${pool.length} 張${pool.length ? '・已蒐集 ' + uniq + ' 張' : '（assets/ 裡還沒有圖片）'}・累積完成挑戰 ${cleared} 週）`;
+    $('#gCount').textContent = `（本週 ${mine.length} 隻・歷史累積 ${g.bears.length} 隻・圖庫 ${pool.length} 張${pool.length ? '・已蒐集 ' + uniq + ' 張' : '（assets/ 裡還沒有圖片）'}・累積完成挑戰 ${cleared} 週）`;
     const st = $('#gStage'); st.innerHTML = '';
-    const list = g.bears.slice(-300), off = g.bears.length - list.length;
+    const list = mine.slice(-300), off = mine.length - list.length;
     list.forEach((b, i) => st.append(bearEl(b, shown >= 0 && off + i >= shown)));
-    if (!g.bears.length) st.append(mk('p', { className: 'soon' }, '舞台還空空的。本週專注滿 1 小時，就會抽到第一隻熊。'));
-    shown = g.bears.length;
+    if (!mine.length) st.append(mk('p', { className: 'soon' }, '本週的舞台還空空的。專注滿 1 小時，就會抽到第一隻熊。'));
+    shown = mine.length;
+    document.dispatchEvent(new CustomEvent('bears-changed', { detail: mine })); // 走動小熊（roam.js）用
 }
 
 // ---- 事件與初始化 ----
@@ -157,3 +178,8 @@ $('#gRepoSave').onclick = async () => {
 $('#gReload').onclick = async () => { poolP = loadPool(true); await poolP; gameMsg = `圖庫已更新：共 ${pool.length} 張`; sync(); };
 document.addEventListener('pomodoro-end', e => { if (e.detail.mode === 'focus') sync(true); });
 renderGame(); sync(false);
+// 週日或週一：每週提示一次，提醒去看 AI 週報與下週目標
+(() => {
+    const d = new Date().getDay(), g = gm(), k = mondayKey();
+    if ((d === 0 || d === 1) && g.hint !== k) { g.hint = k; save(); setTimeout(() => bearToast('📊 新的一週：到「每週挑戰」按「🎯 目標 AI」，看週報、決定下週目標'), 1500); }
+})();

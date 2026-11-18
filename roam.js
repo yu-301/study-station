@@ -2,7 +2,7 @@
 // 在「每週挑戰」的熊熊舞台上點一下熊，它就會跑到畫面底部走來走去（再點一次收回）。預設一隻都不走，等於「自己開啟」。
 // 純前端：一個蓋住整個視窗的透明圖層 + requestAnimationFrame 每幀移動位置；
 // 圖層本身不接收滑鼠事件，只有小熊會（所以小熊會擋到它底下的按鈕，這是刻意的）。
-// 走動中的熊可以用滑鼠或手指拖著跑，放開後會掉回底部繼續走。
+// 走動中的熊可以用滑鼠或手指拖著跑，放開的位置就是新的「地面」：它會在那個高度繼續左右走動（不會掉下去）。
 // 選了哪些熊記在 db.game.roam（會跟著備份）：{ all: 是否全選（之後抽到的新熊也自動加入）, ids: 被選的熊 id }
 // 需要 app.js、game.js 先載入（mk、$、save、gm、weekBears，以及 game.js 發出的 bears-changed 事件）
 const ROAM_SIZE = 56;           // 小熊大小（px），要和 style.css 的 .rbear 一致
@@ -52,7 +52,7 @@ function roamAdd(b) {
     el.append(inner); roamLayer.append(el);
     const W = Math.max(0, roamLayer.clientWidth - ROAM_SIZE), gy = Math.random() * 18;
     const it = { el, inner, x: Math.random() * W, y: gy, gy, vy: 0, v: 22 + Math.random() * 38, dir: Math.random() < 0.5 ? -1 : 1, idle: 0, next: 2 + Math.random() * 5, drag: false, lx: 0 };
-    // 拖曳：按住小熊可以拖到畫面上任何地方；放開後掉回底部（減少動態效果時直接放回底部）
+    // 拖曳：按住小熊可以拖到畫面上任何地方；放開後就在那個高度左右走動
     const move = e => {
         if (!roamLayer || !roamLayer.contains(el)) return;
         const r = roamLayer.getBoundingClientRect();
@@ -66,7 +66,7 @@ function roamAdd(b) {
     const end = () => {
         window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end);
         if (!it.drag) return;
-        it.drag = false; it.vy = 0; el.classList.remove('drag'); if (roamReduce) it.y = it.gy; roamPaint(it);
+        it.drag = false; it.gy = it.y; el.classList.remove('drag'); roamPaint(it); // 放開的高度 = 新的行走高度
     };
     el.addEventListener('pointerdown', e => {
         if (e.button) return; e.preventDefault(); it.drag = true; it.vy = 0; it.lx = e.clientX; el.classList.add('drag');
@@ -81,7 +81,7 @@ function roamTick(ts) {
     const W = Math.max(0, roamLayer.clientWidth - ROAM_SIZE);
     roamItems.forEach(it => {
         if (it.drag) return;
-        if (it.y > it.gy) { it.vy += 2200 * dt; it.y = Math.max(it.gy, it.y - it.vy * dt); if (it.y === it.gy) it.vy = 0; roamPaint(it); return; } // 被放開後往下掉
+        const maxY = Math.max(0, roamLayer.clientHeight - ROAM_SIZE); if (it.gy > maxY) it.gy = it.y = maxY; // 視窗縮小時，別讓小熊卡在畫面外
         if (it.idle > 0) it.idle -= dt;
         else {
             it.x += it.dir * it.v * dt;

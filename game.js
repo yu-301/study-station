@@ -118,24 +118,29 @@ function bearToast(text) {
 
 // ---- 獎勵：抽倍率 ----
 let gameMsg = '';
-function claim(p) {
-    const g = gm(), { w } = curWeek();
-    if (!w.ms.includes(p) || w.used.includes(p)) return;
-    const m = drawMult(); w.used.push(p); w.res[p] = m;
+// 抽倍率改成轉盤（wheel.js）：按「開始」轉、自己按「停！」，指針指到哪格就是幾倍。沒轉完就關掉視窗 = 沒領取，獎勵還在。
+function grant(m, label) {
+    const g = gm();
     for (let i = 0; i < m; i++) g.bears.push(drawBear('bonus'));
-    gameMsg = `🎁 ${p}% 獎勵：抽到 ×${m}！額外獲得 ${m} 隻熊`;
+    gameMsg = `🎁 ${label}：抽到 ×${m}！額外獲得 ${m} 隻熊`;
     save(); renderGame();
     document.dispatchEvent(new CustomEvent('bears-drawn', { detail: { count: m, bonus: true, mult: m } })); // 夥伴 AI 只在 ×5 時特別慶祝
 }
-
-function claimOver() { // 超過本週目標後，每 OVER_STEP_H 小時一次的獎勵倍率
-    const g = gm(), { w } = curWeek();
+function claim(p) {
+    const { w } = curWeek();
+    if (!w.ms.includes(p) || w.used.includes(p)) return;
+    openWheel(`${p}% 獎勵`, m => {
+        const { w } = curWeek(); if (!w.ms.includes(p) || w.used.includes(p)) return false; // 領過了就不重複算
+        w.used.push(p); w.res[p] = m; grant(m, `${p}% 獎勵`); return true;
+    });
+}
+function claimOver() { // 超過本週目標後，每 OVER_STEP_H 小時一次
+    const { w } = curWeek();
     if (w.overUsed.length >= w.overN) return;
-    const m = drawMult(); w.overUsed.push(m);
-    for (let i = 0; i < m; i++) g.bears.push(drawBear('bonus'));
-    gameMsg = `🎁 超標獎勵：抽到 ×${m}！額外獲得 ${m} 隻熊`;
-    save(); renderGame();
-    document.dispatchEvent(new CustomEvent('bears-drawn', { detail: { count: m, bonus: true, mult: m } }));
+    openWheel('超標獎勵', m => {
+        const { w } = curWeek(); if (w.overUsed.length >= w.overN) return false;
+        w.overUsed.push(m); grant(m, '超標獎勵'); return true;
+    });
 }
 
 // ---- 畫面 ----
@@ -169,8 +174,8 @@ function renderGame() {
     $('#gMsg').textContent = gameMsg || (got ? '已領取獎勵：' + got : '');
     $('#gPoolInfo').textContent = '圖庫　' + poolInfo; if (document.activeElement !== $('#gRepo')) $('#gRepo').value = gm().repo || autoRepo();
     const cleared = Object.values(g.weeks).filter(x => (x.ms || []).includes(100)).length;
-    const uniq = new Set(g.bears.map(b => b.src).filter(Boolean)).size;
-    $('#gCount').textContent = `（本週 ${mine.length} 隻・歷史累積 ${g.bears.length} 隻・圖庫 ${pool.length} 張${pool.length ? '・已蒐集 ' + uniq + ' 張' : '（assets/ 裡還沒有圖片）'}・累積完成挑戰 ${cleared} 週）`;
+    const uniq = new Set(mine.map(b => b.src).filter(Boolean)).size; // 本週蒐集到幾種圖
+    $('#gCount').textContent = `（本週 ${mine.length} 隻・歷史累積 ${g.bears.length} 隻・圖庫 ${pool.length} 張${pool.length ? '・本週蒐集 ' + uniq + ' 種' : '（assets/ 裡還沒有圖片）'}・累積完成挑戰 ${cleared} 週）`;
     const st = $('#gStage'); st.innerHTML = '';
     const list = mine.slice(-300), off = mine.length - list.length;
     list.forEach((b, i) => st.append(bearEl(b, shown >= 0 && off + i >= shown)));

@@ -5,7 +5,6 @@
 // 走動中的熊可以用滑鼠或手指拖著跑，放開後會掉回底部繼續走。
 // 選了哪些熊記在 db.game.roam（會跟著備份）：{ all: 是否全選（之後抽到的新熊也自動加入）, ids: 被選的熊 id }
 // 需要 app.js、game.js 先載入（mk、$、save、gm、weekBears，以及 game.js 發出的 bears-changed 事件）
-const ROAM_MAX = 40;            // 同時最多顯示幾隻（再多會擠、也比較耗效能）
 const ROAM_SIZE = 56;           // 小熊大小（px），要和 style.css 的 .rbear 一致
 const ROAM_FACES_RIGHT = true;  // 你的圖片預設是面向右邊嗎？如果小熊都倒退走，改成 false
 const roamReduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; // 系統設定「減少動態效果」時不自己走動、不做掉落動畫
@@ -22,7 +21,7 @@ function roamMark() {
         const on = roamSel({ id: el.dataset.id }); el.classList.toggle('sel', on); el.setAttribute('aria-pressed', on);
     });
     const n = roamList.filter(roamSel).length;
-    $('#gRoamInfo').textContent = `走動中 ${n} 隻 / 本週 ${roamList.length} 隻` + (n > ROAM_MAX ? `（畫面上最多同時顯示 ${ROAM_MAX} 隻）` : '');
+    $('#gRoamInfo').textContent = `走動中 ${n} 隻 / 本週 ${roamList.length} 隻`;
 }
 function roamToggle(id) {
     const r = roamCfg();
@@ -55,16 +54,25 @@ function roamAdd(b) {
     const it = { el, inner, x: Math.random() * W, y: gy, gy, vy: 0, v: 22 + Math.random() * 38, dir: Math.random() < 0.5 ? -1 : 1, idle: 0, next: 2 + Math.random() * 5, drag: false, lx: 0 };
     // 拖曳：按住小熊可以拖到畫面上任何地方；放開後掉回底部（減少動態效果時直接放回底部）
     const move = e => {
+        if (!roamLayer || !roamLayer.contains(el)) return;
         const r = roamLayer.getBoundingClientRect();
         it.x = clamp(e.clientX - r.left - ROAM_SIZE / 2, 0, r.width - ROAM_SIZE);
         it.y = clamp(r.bottom - e.clientY - ROAM_SIZE / 2, 0, r.height - ROAM_SIZE);
         if (Math.abs(e.clientX - it.lx) > 2) { it.dir = e.clientX > it.lx ? 1 : -1; it.lx = e.clientX; }
         roamPaint(it);
     };
-    el.addEventListener('pointerdown', e => { e.preventDefault(); it.drag = true; it.vy = 0; it.lx = e.clientX; try { el.setPointerCapture(e.pointerId); } catch { } el.classList.add('drag'); move(e); });
-    el.addEventListener('pointermove', e => { if (it.drag) move(e); });
-    const end = () => { if (!it.drag) return; it.drag = false; it.vy = 0; el.classList.remove('drag'); if (roamReduce) it.y = it.gy; roamPaint(it); };
-    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+    // 拖曳事件掛在 window 上（不靠 pointer capture），滑鼠移出小熊、或是在手機上都不會斷掉
+    const onMove = e => { if (it.drag) move(e); };
+    const end = () => {
+        window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end);
+        if (!it.drag) return;
+        it.drag = false; it.vy = 0; el.classList.remove('drag'); if (roamReduce) it.y = it.gy; roamPaint(it);
+    };
+    el.addEventListener('pointerdown', e => {
+        if (e.button) return; e.preventDefault(); it.drag = true; it.vy = 0; it.lx = e.clientX; el.classList.add('drag');
+        window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
+        move(e);
+    });
     roamItems.set(b.id, it); roamPaint(it);
 }
 function roamTick(ts) {
@@ -85,7 +93,7 @@ function roamTick(ts) {
     });
 }
 function roamRefresh() {
-    const want = roamList.filter(roamSel).slice(-ROAM_MAX);
+    const want = roamList.filter(roamSel);
     if (!want.length) { // 沒有被選的熊：停掉動畫、拿掉圖層
         cancelAnimationFrame(roamRaf); roamRaf = 0; roamLast = 0; roamItems.clear();
         if (roamLayer) { roamLayer.remove(); roamLayer = null; }

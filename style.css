@@ -1329,3 +1329,59 @@ a.song:focus-visible {
   outline-offset: 2px;
   border-radius: 12px
 }
+
+/* 轉盤 */
+.wheeldlg {
+  text-align: center
+}
+
+.wheeldlg .row {
+  justify-content: center
+}
+
+.wheelbox {
+  position: relative;
+  width: min(300px, 100%);
+  aspect-ratio: 1;
+  margin: 1rem auto .5rem
+}
+
+.wheelbox canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow: 0 4px 16px #0004
+}
+
+.wpointer {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: -13px;
+  border-left: 13px solid transparent;
+  border-right: 13px solid transparent;
+  border-top: 28px solid var(--ink);
+  filter: drop-shadow(0 2px 2px #0006);
+  z-index: 2
+}
+
+#wResult {
+  min-height: 2.2rem;
+  margin: .4rem 0;
+  font-size: 1.4rem;
+  font-weight: 700
+}
+
+#wGo {
+  min-width: 6rem;
+  font-size: 1.1rem
+}
+
+#wGo.stop {
+  background: #e0675a;
+  border-color: #e0675a;
+  color: #fff
+}

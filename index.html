@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>學習儀表板</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 
 <body>
@@ -152,9 +152,9 @@
         </div>
         <p class="soon small">網址是「帳號.github.io/專案名」時會自動判斷；在本機測試或用自訂網域時，請在這裡填你的 GitHub 專案。</p>
       </details>
-      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊（超過目標之後也一樣）；達到目標的 25%、50%、75%、100% 時各有一次獎勵，抽到 ×N 就額外得到 N 隻；其中 50% 和 100%
-        另外保證送 1 隻「本週還沒有的熊」；超過本週目標後，每多專注 5 小時可以再抽一次獎勵倍率。熊舞台只顯示本週的熊，每週一重新累積（歷史累積數量仍保留）。圖片請放在 <code>assets</code> 資料夾（和
-        index.html 同一層，不要放進子資料夾），資料夾裡的每張圖都會進抽獎。新增圖片後按
+      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊（超過目標之後也一樣）；達到目標的 25%、50%、75%、100% 時各有一次獎勵（轉轉盤：按開始、自己按停，指針指到 ×N 就額外得到 N
+        隻；倍率越高格子越小）；其中 50% 和 100% 另外保證送 1 隻「本週還沒有的熊」；超過本週目標後，每多專注 5 小時可以再抽一次獎勵倍率。熊舞台只顯示本週的熊，每週一重新累積（歷史累積數量仍保留）。圖片請放在
+        <code>assets</code> 資料夾（和 index.html 同一層，不要放進子資料夾），資料夾裡的每張圖都會進抽獎。新增圖片後按
         <button id="gReload" class="linkbtn">重新讀取圖庫</button>。
       </p>
     </section>
@@ -387,6 +387,17 @@
     </div>
   </aside>
 
+  <dialog id="wheelDlg" class="wheeldlg" aria-labelledby="wTitle">
+    <h3 id="wTitle">🎡 轉盤</h3>
+    <p class="soon small">按「開始」轉起來，再按「停！」（空白鍵也可以）。指針指到哪一格就是幾倍；越後面轉得越快。</p>
+    <div class="wheelbox"><canvas id="wCanvas" width="300" height="300"></canvas>
+      <div class="wpointer"></div>
+    </div>
+    <p id="wOdds" class="soon small"></p>
+    <p id="wResult" aria-live="assertive"></p>
+    <div class="row"><button id="wGo" class="primary">開始</button><button id="wClose">取消</button></div>
+  </dialog>
+
   <dialog id="keyDlg">
     <h3>AI 設定</h3>
     <p class="soon">本專案使用 Groq，所有 AI 功能共用同一把 Key。Key 只會存在這個瀏覽器的 LocalStorage，不會上傳到 GitHub，也不會送到對應服務以外的地方。
@@ -408,25 +419,26 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=7"></script>
-  <script src="llm.js?v=7"></script>
-  <script src="tools.js?v=7"></script>
-  <script src="companion.js?v=7"></script>
-  <script src="ai.js?v=7"></script>
-  <script src="rag.js?v=7"></script>
-  <script src="music.js?v=7"></script>
+  <script src="app.js?v=8"></script>
+  <script src="llm.js?v=8"></script>
+  <script src="tools.js?v=8"></script>
+  <script src="companion.js?v=8"></script>
+  <script src="ai.js?v=8"></script>
+  <script src="rag.js?v=8"></script>
+  <script src="music.js?v=8"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="stats.js?v=7"></script>
-  <script src="home.js?v=7"></script>
-  <script src="game.js?v=7"></script>
-  <script src="plan.js?v=7"></script>
-  <script src="roam.js?v=7"></script>
-  <script src="backup.js?v=7"></script>
+  <script src="stats.js?v=8"></script>
+  <script src="home.js?v=8"></script>
+  <script src="wheel.js?v=8"></script>
+  <script src="game.js?v=8"></script>
+  <script src="plan.js?v=8"></script>
+  <script src="roam.js?v=8"></script>
+  <script src="backup.js?v=8"></script>
   <script>
     // 缺檔自我檢查：新檔案沒上傳或被快取時，直接告訴你缺哪一個，不用猜 "xxx is not defined"
     (function () {
       const need = [['app.js', typeof save], ['llm.js', typeof callLLM], ['tools.js', typeof TOOLS], ['companion.js', typeof checkDeadlines],
-      ['ai.js', typeof openPanel], ['rag.js', typeof askQA], ['music.js', typeof recommend], ['stats.js', typeof renderStats], ['home.js', typeof renderHome], ['game.js', typeof renderGame], ['plan.js', typeof renderPlan], ['roam.js', typeof roamRefresh], ['backup.js', typeof exportData]];
+      ['ai.js', typeof openPanel], ['rag.js', typeof askQA], ['music.js', typeof recommend], ['stats.js', typeof renderStats], ['home.js', typeof renderHome], ['wheel.js', typeof openWheel], ['game.js', typeof renderGame], ['plan.js', typeof renderPlan], ['roam.js', typeof roamRefresh], ['backup.js', typeof exportData]];
       const miss = need.filter(n => n[1] === 'undefined').map(n => n[0]);
       if (miss.length) {
         const d = document.createElement('div'); d.className = 'missing';

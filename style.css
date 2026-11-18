@@ -1235,9 +1235,9 @@ a.song:focus-visible {
 
 #roamLayer {
   position: fixed;
+  top: 0;
   right: 0;
   bottom: 0;
-  height: 90px;
   pointer-events: none;
   overflow: hidden;
   z-index: 10
@@ -1249,7 +1249,17 @@ a.song:focus-visible {
   bottom: 0;
   width: 56px;
   height: 56px;
-  will-change: transform
+  will-change: transform;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none
+}
+
+.rbear.drag {
+  cursor: grabbing;
+  z-index: 2
 }
 
 .rin {
@@ -1261,7 +1271,8 @@ a.song:focus-visible {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 2px 2px #0004)
+  filter: drop-shadow(0 2px 2px #0004);
+  -webkit-user-drag: none
 }
 
 .remo {
@@ -1281,4 +1292,40 @@ a.song:focus-visible {
   to {
     translate: 0 -5px
   }
+}
+
+/* 熊熊舞台：滑過去會浮起來；被選去走動的熊有外框 */
+.roamctl {
+  align-items: center;
+  gap: .5rem;
+  margin: .4rem 0
+}
+
+.stage .bear {
+  cursor: pointer;
+  transition: filter .18s
+}
+
+.stage .bear:hover,
+.stage .bear:focus-visible {
+  filter: drop-shadow(0 8px 6px #0005);
+  z-index: 1;
+  position: relative
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stage .bear {
+    transition: transform .18s, filter .18s
+  }
+
+  .stage .bear:hover,
+  .stage .bear:focus-visible {
+    transform: translateY(-8px) scale(1.15) rotate(-3deg)
+  }
+}
+
+.stage .bear.sel {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 12px
 }

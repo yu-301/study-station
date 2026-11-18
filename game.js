@@ -1,8 +1,8 @@
 // ===== 每週挑戰：每週專注目標 + 抽熊 =====
 // 規則（想調整就改這幾個常數）：
-//   1) 本週（週一到週日）每累積專注滿 1 小時，抽 1 隻熊；超過本週目標之後，改成每多累積 OVER_STEP_H 小時抽 1 隻。
+//   1) 本週（週一到週日）每累積專注滿 1 小時，抽 1 隻熊（超過目標之後也一樣）；超過本週目標後，每多累積 OVER_STEP_H 小時，另外可以再抽 1 次「獎勵倍率」。
 //   2) 達到目標的 25%、50%、75%、100% 時，各有 1 次「獎勵抽倍率」：抽到 ×N，就額外獲得 N 隻熊。
-//      其中 GUARANTEE 列的百分比（預設 50%、100%）達成時，另外「保證直接送 1 隻」，不用抽。
+//      其中 GUARANTEE 列的百分比（預設 50%、100%）達成時，另外「保證直接送 1 隻」，而且會優先挑「本週舞台上還沒有的圖」。
 //   3) 熊舞台只顯示「本週」的熊；每週一從 0 重新累積。歷史累積數量仍然保留（顯示在標題旁）。
 //   4) 圖庫 = 網站 assets 資料夾裡的所有圖片（檔名不拘，數量不拘，不含子資料夾）。
 //      網頁沒辦法直接列出資料夾，所以用 GitHub 的 API 查檔案清單：
@@ -15,12 +15,12 @@ const POOL_KEY = 'studyhub.pool', POOL_TTL = 5 * 60000;
 const PCTS = [25, 50, 75, 100];
 const MULTS = [[1, 45], [2, 30], [3, 17], [5, 8]]; // [倍率, 權重]
 const GUARANTEE = [50, 100]; // 達到這些 % 時，保證直接送 1 隻熊
-const OVER_STEP_H = 5;       // 超過本週目標後，每多專注幾小時抽 1 隻
-const hourBears = (hrs, goalH) => Math.min(hrs, goalH) + Math.floor(Math.max(0, hrs - goalH) / OVER_STEP_H); // 依累積小時應得的「時數熊」
+const OVER_STEP_H = 5;       // 超過本週目標後，每多專注幾小時，多 1 次「獎勵倍率」可抽（時數熊照樣每小時 1 隻）
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const LEVELS = ['🌱 森林新手', '🧸 見習熊', '🐻 勤奮熊', '🏅 學霸熊', '👑 熊熊王'];
 
 // 遊戲資料放在 db.game（和其他學習資料一起備份）：{ goal, weeks:{週一日期:{goal,hours,ms,used,res}}, bears:[{src,t,wk,kind}] }
-const gm = () => { const g = db.game = db.game || {}; g.goal = g.goal || 20; g.weeks = g.weeks || {}; g.bears = g.bears || []; return g; };
+const gm = () => { const g = db.game = db.game || {}; g.goal = g.goal || 20; g.weeks = g.weeks || {}; g.bears = g.bears || []; g.bears.forEach(b => { if (!b.id) b.id = newId(); }); return g; };
 const mondayKey = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return dkey(x); };
 function weekMinutes(start) {
     let s = 0; const x = new Date(start + 'T00:00');
@@ -30,7 +30,7 @@ function weekMinutes(start) {
 function curWeek() {
     const g = gm(), k = mondayKey();
     const w = g.weeks[k] = g.weeks[k] || { goal: g.goal, hours: 0, ms: [], used: [], res: {} };
-    w.res = w.res || {};
+    w.res = w.res || {}; w.overN = w.overN || 0; w.overUsed = w.overUsed || []; // overN：超標獎勵累計幾次；overUsed：已抽到的倍率
     return { k, w };
 }
 
@@ -75,7 +75,11 @@ async function listAssets(force) {
 async function loadPool(force) { pool = (await listAssets(force)).map(n => ASSET_DIR + encodeURIComponent(n)); return pool; }
 const ensurePool = () => poolP || (poolP = loadPool());
 function weekBears() { const { k } = curWeek(); return gm().bears.filter(b => b.wk === k); } // 本週的熊（舞台、走動小熊都用這個）
-const drawBear = kind => ({ src: pool.length ? pool[Math.floor(Math.random() * pool.length)] : '', t: Date.now(), wk: mondayKey(), kind });
+function drawBear(kind, fresh) { // fresh：優先挑本週舞台上還沒有的圖（圖庫都有了才重複）
+    let list = pool;
+    if (fresh && pool.length) { const have = new Set(weekBears().map(b => b.src)), nu = pool.filter(s => !have.has(s)); if (nu.length) list = nu; }
+    return { id: newId(), src: list.length ? list[Math.floor(Math.random() * list.length)] : '', t: Date.now(), wk: mondayKey(), kind };
+}
 function drawMult() {
     let r = Math.random() * MULTS.reduce((s, m) => s + m[1], 0);
     for (const [m, wt] of MULTS) { if ((r -= wt) < 0) return m; }
@@ -88,18 +92,19 @@ async function sync(announce) {
     const g = gm(), { k, w } = curWeek(), min = weekMinutes(k), hrs = Math.floor(min / 60), hit = [];
     let got = 0, sure = 0, healed = 0;
     if (pool.length) g.bears.forEach(b => { if (!b.src || /^assets\/bears\//.test(b.src)) { b.src = pool[Math.floor(Math.random() * pool.length)]; healed++; } }); // 圖庫還是空的時抽到的熊，補上圖片
-    const due = hourBears(hrs, w.goal); // w.hours 現在代表「已經依時數發出幾隻」
-    while (w.hours < due) { w.hours++; g.bears.push(drawBear('hour')); got++; }
+    while (w.hours < hrs) { w.hours++; g.bears.push(drawBear('hour')); got++; } // w.hours = 已經依時數發出幾隻
     PCTS.forEach(p => {
         if (!w.ms.includes(p) && min >= Math.ceil(w.goal * 60 * p / 100)) {
             w.ms.push(p); hit.push(p);
-            if (GUARANTEE.includes(p)) { g.bears.push(drawBear('milestone')); sure++; }
+            if (GUARANTEE.includes(p)) { g.bears.push(drawBear('milestone', true)); sure++; }
         }
     });
-    if (got || sure || hit.length || healed) save();
-    if (announce && (got || sure || hit.length)) {
+    const overBefore = w.overN, over = min > w.goal * 60 ? Math.floor((min - w.goal * 60) / (OVER_STEP_H * 60)) : 0;
+    w.overN = Math.max(w.overN, over); // 超標每滿 OVER_STEP_H 小時，多一次倍率可抽
+    if (got || sure || hit.length || healed || w.overN > overBefore) save();
+    if (announce && (got || sure || hit.length || w.overN > overBefore)) {
         const gifts = hit.filter(p => !w.used.includes(p));
-        bearToast('🧸 ' + (got + sure ? `抽到 ${got + sure} 隻新熊！（本週共 ${weekBears().length} 隻）` : '') + (gifts.length ? ` 達成 ${gifts.join('、')}%，到「每週挑戰」領獎勵！` : ''));
+        bearToast('🧸 ' + (got + sure ? `抽到 ${got + sure} 隻新熊！（本週共 ${weekBears().length} 隻）` : '') + (gifts.length ? ` 達成 ${gifts.join('、')}%，到「每週挑戰」領獎勵！` : '') + (w.overN > overBefore ? ' 超標獎勵可以抽倍率了！' : ''));
         if (got + sure) document.dispatchEvent(new CustomEvent('bears-drawn', { detail: { count: got + sure, milestone: sure > 0 } }));
     }
     renderGame();
@@ -123,14 +128,25 @@ function claim(p) {
     document.dispatchEvent(new CustomEvent('bears-drawn', { detail: { count: m, bonus: true, mult: m } })); // 夥伴 AI 只在 ×5 時特別慶祝
 }
 
+function claimOver() { // 超過本週目標後，每 OVER_STEP_H 小時一次的獎勵倍率
+    const g = gm(), { w } = curWeek();
+    if (w.overUsed.length >= w.overN) return;
+    const m = drawMult(); w.overUsed.push(m);
+    for (let i = 0; i < m; i++) g.bears.push(drawBear('bonus'));
+    gameMsg = `🎁 超標獎勵：抽到 ×${m}！額外獲得 ${m} 隻熊`;
+    save(); renderGame();
+    document.dispatchEvent(new CustomEvent('bears-drawn', { detail: { count: m, bonus: true, mult: m } }));
+}
+
 // ---- 畫面 ----
 let shown = -1, shownWk = ''; // 已經畫過幾隻（只算本週）；之後新增的才會有登場動畫
 const fmtH = m => (m / 60).toFixed(1);
 function bearEl(b, isNew) {
-    const tip = `${b.kind === 'bonus' ? '獎勵' : b.kind === 'milestone' ? '里程碑保證' : '專注時數'}・${new Date(b.t).toLocaleDateString('zh-TW')}`;
-    const emoji = () => mk('span', { className: 'bear emoji' + (isNew ? ' new' : ''), title: tip }, '🧸');
+    const tip = `${b.kind === 'bonus' ? '獎勵' : b.kind === 'milestone' ? '里程碑保證' : '專注時數'}・${new Date(b.t).toLocaleDateString('zh-TW')}（點一下：讓它在畫面底部走動／收回）`;
+    const mark = el => { el.dataset.id = b.id; el.tabIndex = 0; el.setAttribute('role', 'button'); el.setAttribute('aria-pressed', 'false'); return el; }; // roam.js 負責點選與標示
+    const emoji = () => mark(mk('span', { className: 'bear emoji' + (isNew ? ' new' : ''), title: tip }, '🧸'));
     if (!b.src) return emoji();
-    const img = mk('img', { className: 'bear' + (isNew ? ' new' : ''), src: b.src, alt: '熊', title: tip, loading: 'lazy' });
+    const img = mark(mk('img', { className: 'bear' + (isNew ? ' new' : ''), src: b.src, alt: '熊', title: tip, loading: 'lazy' }));
     img.onerror = () => img.replaceWith(emoji()); // 圖片被刪掉或改名時，用 🧸 頂替
     return img;
 }
@@ -138,17 +154,18 @@ function renderGame() {
     const g = gm(), { k, w } = curWeek(), min = weekMinutes(k), goalMin = w.goal * 60, pct = Math.min(100, min / goalMin * 100);
     const mine = weekBears();
     if (shownWk !== k) { shownWk = k; shown = -1; } // 換週：舞台清空重來，不放登場動畫
-    const stepMin = OVER_STEP_H * 60, nextMin = min < goalMin ? 60 - min % 60 : stepMin - (min - goalMin) % stepMin;
+    const stepMin = OVER_STEP_H * 60, nextMin = 60 - min % 60, overNext = stepMin - (min - goalMin) % stepMin;
     if (document.activeElement !== $('#gGoal')) $('#gGoal').value = w.goal;
     $('#gTitle').textContent = `${LEVELS[w.ms.length]}　本週挑戰（${k.slice(5).replace('-', '/')} 起）`;
     $('#gFill').style.width = pct + '%';
     document.querySelectorAll('#gBar .gtick').forEach(t => t.classList.toggle('hit', w.ms.includes(+t.dataset.p)));
     const next = PCTS.find(p => !w.ms.includes(p));
-    $('#gText').textContent = `${fmtH(min)} / ${w.goal} 小時（${Math.floor(pct)}%）・本週抽到 ${mine.length} 隻・再專注 ${nextMin} 分鐘抽下一隻${min >= goalMin ? `（超過目標後每 ${OVER_STEP_H} 小時 1 隻）` : ''}`
+    $('#gText').textContent = `${fmtH(min)} / ${w.goal} 小時（${Math.floor(pct)}%）・本週抽到 ${mine.length} 隻・再專注 ${nextMin} 分鐘抽下一隻${min >= goalMin ? `・超標每 ${OVER_STEP_H} 小時可多抽一次倍率（再 ${overNext} 分鐘）` : ''}`
         + (next ? `・下一個獎勵 ${next}%（還差 ${fmtH(Math.ceil(goalMin * next / 100) - min)} 小時）` : '・🎉 本週挑戰完成！');
     const gifts = $('#gGifts'); gifts.innerHTML = '';
     w.ms.filter(p => !w.used.includes(p)).forEach(p => { const b = mk('button', { className: 'primary' }, `🎁 達成 ${p}%：抽倍率`); b.dataset.p = p; gifts.append(b); });
-    const got = Object.entries(w.res).map(([p, m]) => `${p}% ×${m}`).join('、');
+    for (let i = w.overUsed.length; i < w.overN; i++) { const b = mk('button', { className: 'primary' }, '🎁 超標獎勵：抽倍率'); b.dataset.o = '1'; gifts.append(b); }
+    const got = [...Object.entries(w.res).map(([p, m]) => `${p}% ×${m}`), ...w.overUsed.map(m => `超標 ×${m}`)].join('、');
     $('#gMsg').textContent = gameMsg || (got ? '已領取獎勵：' + got : '');
     $('#gPoolInfo').textContent = '圖庫　' + poolInfo; if (document.activeElement !== $('#gRepo')) $('#gRepo').value = gm().repo || autoRepo();
     const cleared = Object.values(g.weeks).filter(x => (x.ms || []).includes(100)).length;
@@ -168,7 +185,7 @@ $('#gGoal').onchange = e => {
     const v = Math.min(Math.max(Math.round(+e.target.value) || 1, 1), 168), g = gm(), { w } = curWeek();
     w.goal = g.goal = v; e.target.value = v; save(); sync();
 };
-$('#gGifts').onclick = e => { const b = e.target.closest('button[data-p]'); if (b) claim(+b.dataset.p); };
+$('#gGifts').onclick = e => { const b = e.target.closest('button[data-p],button[data-o]'); if (!b) return; if (b.dataset.o) claimOver(); else claim(+b.dataset.p); };
 document.addEventListener('viewchange', e => { if (e.detail === 'game') { gameMsg = ''; poolP = null; sync(); } }); // 進頁面時重新讀圖庫（5 分鐘內用快取）
 $('#gRepoSave').onclick = async () => {
     const v = $('#gRepo').value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');

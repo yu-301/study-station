@@ -137,8 +137,11 @@
         </div>
       </div>
       <h3>熊熊舞台 <span id="gCount" class="soon"></span></h3>
-      <label class="rtoggle"><input id="gRoam" type="checkbox"> 讓本週的熊在畫面底部走動 <span id="gRoamNote"
-          class="soon small"></span></label>
+      <div class="row roamctl">
+        <span class="soon small">點一下下面的熊＝讓它跑到畫面底部走動（再點一次收回）；走動中的熊可以拖著玩。</span>
+        <button id="gRoamAll" class="small">全選</button><button id="gRoamNone" class="small">全部取消</button>
+        <span id="gRoamInfo" class="soon small"></span><span id="gRoamNote" class="soon small"></span>
+      </div>
       <div id="gStage" class="stage"></div>
       <p id="gPoolInfo" class="soon small"></p>
       <details class="small">
@@ -149,16 +152,16 @@
         </div>
         <p class="soon small">網址是「帳號.github.io/專案名」時會自動判斷；在本機測試或用自訂網域時，請在這裡填你的 GitHub 專案。</p>
       </details>
-      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊（超過本週目標後，改成每多專注 5 小時抽 1 隻）；達到目標的 25%、50%、75%、100% 時各有一次獎勵，抽到 ×N 就額外得到 N
-        隻；其中 50% 和 100% 另外保證直接送 1 隻。熊舞台只顯示本週的熊，每週一重新累積（歷史累積數量仍保留）。圖片請放在 <code>assets</code> 資料夾（和 index.html
-        同一層，不要放進子資料夾），資料夾裡的每張圖都會進抽獎。新增圖片後按
+      <p class="soon small">規則：本週每專注滿 1 小時抽 1 隻熊（超過目標之後也一樣）；達到目標的 25%、50%、75%、100% 時各有一次獎勵，抽到 ×N 就額外得到 N 隻；其中 50% 和 100%
+        另外保證送 1 隻「本週還沒有的熊」；超過本週目標後，每多專注 5 小時可以再抽一次獎勵倍率。熊舞台只顯示本週的熊，每週一重新累積（歷史累積數量仍保留）。圖片請放在 <code>assets</code> 資料夾（和
+        index.html 同一層，不要放進子資料夾），資料夾裡的每張圖都會進抽獎。新增圖片後按
         <button id="gReload" class="linkbtn">重新讀取圖庫</button>。
       </p>
     </section>
 
     <section id="view-plan" class="view narrow" hidden>
       <h2>讀書計畫</h2>
-      <p class="soon">三步驟：① 點選你有空的時段（可按住拖曳）→ ② 確認待辦的預估番茄鐘 → ③ 讓 AI 排程。AI 會參考待辦的
+      <p class="soon">三步驟：① 點選你有空的時段（可按住拖曳）→ ② 勾選要排的待辦、填預估小時 → ③ 讓 AI 排程。AI 會參考待辦的
         deadline、你過去的專注時段與每週目標；排好之後程式會再檢查一次有沒有排進你沒勾的時間。</p>
       <div class="panel">
         <h3>① 哪些時段有空？</h3>
@@ -180,8 +183,11 @@
         <p id="pPeak" class="soon small"></p>
       </div>
       <div class="panel">
-        <h3>② 待辦要花多久？</h3>
-        <p class="soon small">預估幾個番茄鐘是選填；沒填的，AI 會依名稱與 deadline 自己估（結果會標示「AI 估」）。</p>
+        <h3>② 哪些待辦要排？要花幾小時？</h3>
+        <p class="soon small">勾選的才會被排進去；deadline 在規劃週次之後的，預設不勾（可以自己勾）。「預估小時」是選填，單位是小時（可填 0.5）；沒填的，AI 會依名稱與 deadline
+          自己估，結果會標示「AI 估」。</p>
+        <div class="row" id="pTodoSel"><button data-s="all">全選</button><button data-s="none">全不選</button><button
+            data-s="auto">依 deadline 預設</button></div>
         <ul id="pTodos" class="list tight"></ul>
       </div>
       <div class="row">
@@ -402,20 +408,20 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=6"></script>
-  <script src="llm.js?v=6"></script>
-  <script src="tools.js?v=6"></script>
-  <script src="companion.js?v=6"></script>
-  <script src="ai.js?v=6"></script>
-  <script src="rag.js?v=6"></script>
-  <script src="music.js?v=6"></script>
+  <script src="app.js?v=7"></script>
+  <script src="llm.js?v=7"></script>
+  <script src="tools.js?v=7"></script>
+  <script src="companion.js?v=7"></script>
+  <script src="ai.js?v=7"></script>
+  <script src="rag.js?v=7"></script>
+  <script src="music.js?v=7"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="stats.js?v=6"></script>
-  <script src="home.js?v=6"></script>
-  <script src="game.js?v=6"></script>
-  <script src="plan.js?v=6"></script>
-  <script src="roam.js?v=6"></script>
-  <script src="backup.js?v=6"></script>
+  <script src="stats.js?v=7"></script>
+  <script src="home.js?v=7"></script>
+  <script src="game.js?v=7"></script>
+  <script src="plan.js?v=7"></script>
+  <script src="roam.js?v=7"></script>
+  <script src="backup.js?v=7"></script>
   <script>
     // 缺檔自我檢查：新檔案沒上傳或被快取時，直接告訴你缺哪一個，不用猜 "xxx is not defined"
     (function () {

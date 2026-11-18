@@ -56,7 +56,7 @@ async function llmRequest(msgs, o) {
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw Object.assign(new Error(errText(r.status, j)), { status: r.status });
-    return j.choices?.[0]?.message || {};
+    return { ...(j.choices?.[0]?.message || {}), finish: j.choices?.[0]?.finish_reason };
 }
 // o = { system, messages, temperature, max, effort, tools:[{def,run}], onTool(name,args) }
 // 回傳 { text, used:[用過的工具名稱] }
@@ -70,7 +70,7 @@ async function callLLM(o) {
             if (o.tools && e.status === 400 && !used.length) { o = { ...o, tools: null }; i--; continue; }
             throw e;
         }
-        if (!m.tool_calls?.length) return { text: (m.content || '').trim(), used };
+        if (!m.tool_calls?.length) return { text: (m.content || '').trim(), used, finish: m.finish }; // finish === 'length' 代表回覆被 token 上限截斷
         msgs.push({ role: 'assistant', content: m.content || '', tool_calls: m.tool_calls });
         for (const c of m.tool_calls) {
             const t = (o.tools || []).find(x => x.def.name === c.function.name);

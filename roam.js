@@ -2,7 +2,8 @@
 // 在「每週挑戰」的熊熊舞台上點一下熊，它就會跑到畫面底部走來走去（再點一次收回）。預設一隻都不走，等於「自己開啟」。
 // 純前端：一個蓋住整個視窗的透明圖層 + requestAnimationFrame 每幀移動位置；
 // 圖層本身不接收滑鼠事件，只有小熊會（所以小熊會擋到它底下的按鈕，這是刻意的）。
-// 走動中的熊可以用滑鼠或手指拖著跑，放開的位置就是新的「地面」：它會在那個高度繼續左右走動（不會掉下去）。
+// 走動中的熊：按住拖曳 = 移動，放開的位置就是新的「地面」，它會在那個高度繼續左右走動（不會掉下去）；
+// 單純點一下（沒拖動）= 暫停，再點一下 = 繼續走。
 // 選了哪些熊記在 db.game.roam（會跟著備份）：{ all: 是否全選（之後抽到的新熊也自動加入）, ids: 被選的熊 id }
 // 需要 app.js、game.js 先載入（mk、$、save、gm、weekBears，以及 game.js 發出的 bears-changed 事件）
 const ROAM_SIZE = 56;           // 小熊大小（px），要和 style.css 的 .rbear 一致
@@ -43,7 +44,7 @@ function roamFit() { // 圖層避開左邊的側邊欄（手機版側邊欄在�
 function roamPaint(it) {
     it.el.style.transform = `translate(${it.x}px, ${-it.y}px)`;
     it.inner.style.transform = `scaleX(${(it.dir > 0) === ROAM_FACES_RIGHT ? 1 : -1})`;
-    it.el.classList.toggle('walk', !it.drag && it.idle <= 0 && it.y <= it.gy + 0.5 && !roamReduce);
+    it.el.classList.toggle('walk', !it.drag && !it.paused && it.idle <= 0 && it.y <= it.gy + 0.5 && !roamReduce);
 }
 function roamAdd(b) {
     const el = mk('div', { className: 'rbear' }), inner = mk('div', { className: 'rin' }), emoji = () => mk('span', { className: 'remo' }, '🧸');
@@ -51,27 +52,35 @@ function roamAdd(b) {
     else inner.append(emoji());
     el.append(inner); roamLayer.append(el);
     const W = Math.max(0, roamLayer.clientWidth - ROAM_SIZE), gy = Math.random() * 18;
-    const it = { el, inner, x: Math.random() * W, y: gy, gy, vy: 0, v: 22 + Math.random() * 38, dir: Math.random() < 0.5 ? -1 : 1, idle: 0, next: 2 + Math.random() * 5, drag: false, lx: 0 };
-    // 拖曳：按住小熊可以拖到畫面上任何地方；放開後就在那個高度左右走動
+    const it = { el, inner, paused: false, moved: false, sx: 0, sy: 0, ox: 0, oy: 0, x: Math.random() * W, y: gy, gy, vy: 0, v: 22 + Math.random() * 38, dir: Math.random() < 0.5 ? -1 : 1, idle: 0, next: 2 + Math.random() * 5, drag: false, lx: 0 };
+    // 拖曳／點擊：按住拖動超過 5px 才算拖曳（放開的高度 = 新的行走高度）；沒拖動就是「點一下」＝暫停／繼續
+    el.title = '點一下：暫停／繼續；按住拖曳：移動';
     const move = e => {
         if (!roamLayer || !roamLayer.contains(el)) return;
+        if (!it.moved && Math.hypot(e.clientX - it.sx, e.clientY - it.sy) < 5) return; // 手抖不算拖曳
+        it.moved = true; el.classList.add('drag');
         const r = roamLayer.getBoundingClientRect();
-        it.x = clamp(e.clientX - r.left - ROAM_SIZE / 2, 0, r.width - ROAM_SIZE);
-        it.y = clamp(r.bottom - e.clientY - ROAM_SIZE / 2, 0, r.height - ROAM_SIZE);
+        it.x = clamp(e.clientX - r.left - it.ox, 0, r.width - ROAM_SIZE); // 用按下時的抓取位置當偏移，小熊不會跳一下
+        it.y = clamp(r.bottom - e.clientY - it.oy, 0, r.height - ROAM_SIZE);
         if (Math.abs(e.clientX - it.lx) > 2) { it.dir = e.clientX > it.lx ? 1 : -1; it.lx = e.clientX; }
         roamPaint(it);
     };
-    // 拖曳事件掛在 window 上（不靠 pointer capture），滑鼠移出小熊、或是在手機上都不會斷掉
+    // 事件掛在 window 上（不靠 pointer capture），滑鼠移出小熊、或是在手機上都不會斷掉
     const onMove = e => { if (it.drag) move(e); };
     const end = () => {
         window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end);
         if (!it.drag) return;
-        it.drag = false; it.gy = it.y; el.classList.remove('drag'); roamPaint(it); // 放開的高度 = 新的行走高度
+        it.drag = false; el.classList.remove('drag');
+        if (it.moved) it.gy = it.y; // 拖過：放開的高度 = 新的行走高度
+        else { it.paused = !it.paused; el.classList.toggle('paused', it.paused); } // 沒拖：點一下切換暫停
+        roamPaint(it);
     };
     el.addEventListener('pointerdown', e => {
-        if (e.button) return; e.preventDefault(); it.drag = true; it.vy = 0; it.lx = e.clientX; el.classList.add('drag');
+        if (e.button) return; e.preventDefault();
+        const r = roamLayer.getBoundingClientRect();
+        it.drag = true; it.moved = false; it.sx = it.lx = e.clientX; it.sy = e.clientY;
+        it.ox = e.clientX - r.left - it.x; it.oy = r.bottom - e.clientY - it.y;
         window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
-        move(e);
     });
     roamItems.set(b.id, it); roamPaint(it);
 }
@@ -82,6 +91,7 @@ function roamTick(ts) {
     roamItems.forEach(it => {
         if (it.drag) return;
         const maxY = Math.max(0, roamLayer.clientHeight - ROAM_SIZE); if (it.gy > maxY) it.gy = it.y = maxY; // 視窗縮小時，別讓小熊卡在畫面外
+        if (it.paused) { roamPaint(it); return; } // 暫停：站著不動
         if (it.idle > 0) it.idle -= dt;
         else {
             it.x += it.dir * it.v * dt;

@@ -53,11 +53,11 @@ function roamAdd(b) {
     el.append(inner); roamLayer.append(el);
     const W = Math.max(0, roamLayer.clientWidth - ROAM_SIZE), gy = Math.random() * 18;
     const it = { el, inner, paused: false, moved: false, sx: 0, sy: 0, ox: 0, oy: 0, x: Math.random() * W, y: gy, gy, vy: 0, v: 22 + Math.random() * 38, dir: Math.random() < 0.5 ? -1 : 1, idle: 0, next: 2 + Math.random() * 5, drag: false, lx: 0 };
-    // 拖曳／點擊：按住拖動超過 5px 才算拖曳（放開的高度 = 新的行走高度）；沒拖動就是「點一下」＝暫停／繼續
+    // 拖曳／點擊：按住拖動超過 8px（觸控 14px）才算拖曳（放開的高度 = 新的行走高度）；沒拖動就是「點一下」＝暫停／繼續
     el.title = '點一下：暫停／繼續；按住拖曳：移動';
     const move = e => {
         if (!roamLayer || !roamLayer.contains(el)) return;
-        if (!it.moved && Math.hypot(e.clientX - it.sx, e.clientY - it.sy) < 5) return; // 手抖不算拖曳
+        if (!it.moved && Math.hypot(e.clientX - it.sx, e.clientY - it.sy) < (it.touch ? 14 : 8)) return; // 手抖不算拖曳（手指點擊容易微動，門檻放寬）
         it.moved = true; el.classList.add('drag');
         const r = roamLayer.getBoundingClientRect();
         it.x = clamp(e.clientX - r.left - it.ox, 0, r.width - ROAM_SIZE); // 用按下時的抓取位置當偏移，小熊不會跳一下
@@ -78,7 +78,7 @@ function roamAdd(b) {
     el.addEventListener('pointerdown', e => {
         if (e.button) return; e.preventDefault();
         const r = roamLayer.getBoundingClientRect();
-        it.drag = true; it.moved = false; it.sx = it.lx = e.clientX; it.sy = e.clientY;
+        it.drag = true; it.moved = false; it.touch = e.pointerType === 'touch'; it.sx = it.lx = e.clientX; it.sy = e.clientY;
         it.ox = e.clientX - r.left - it.x; it.oy = r.bottom - e.clientY - it.y;
         window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
     });

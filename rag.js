@@ -3,6 +3,7 @@
 // Groq 沒有 embedding 模型，所以檢索用 BM25（關鍵字加權）；中文沒有空格，改用「相鄰兩字」當詞（bigram）。
 // 需要 app.js、llm.js、ai.js 先載入：會用到 $、mk、ai、callLLM、addMsg、openKeyDlg
 const DOCK = 'studyhub.docs';
+const docSubject = d => d.subject || '未分類'; // 文件所屬科目（wrong.js 負責分類與調整）
 const CHUNK_MAX = 450, TOTAL_MAX = 300000;
 let docs = []; // [{ name, chunks:[string] }]
 try { docs = JSON.parse(localStorage.getItem(DOCK)) || []; } catch { }
@@ -93,10 +94,11 @@ function renderDocs() {
     docs.forEach(d => {
         const li = mk('li'), del = mk('button', {}, '移除');
         del.onclick = () => { docs = docs.filter(x => x !== d); saveDocs(); buildIndex(); renderDocs(); };
-        li.append(mk('span', { className: 'grow' }, d.name), mk('span', { className: 'dt' }, d.chunks.length + ' 段'), del);
+        li.append(mk('span', { className: 'grow' }, d.name), mk('span', { className: 'dt' }, docSubject(d) + '・' + d.chunks.length + ' 段'), del);
         ul.append(li);
     });
     $('#docHint').hidden = docs.length > 0;
+    if (typeof paintSubjectSel === 'function') paintSubjectSel(); // 出題範圍的科目下拉選單
 }
 $('#docIn').onchange = async e => {
     const note = $('#qaNote'); note.textContent = '';
@@ -106,10 +108,11 @@ $('#docIn').onchange = async e => {
             const text = /\.pdf$/i.test(f.name) ? await readPdf(f) : await f.text();
             if (!text.trim()) throw new Error('讀不到文字（掃描圖片的 PDF 無法處理）');
             if (docs.reduce((s, d) => s + d.chunks.join('').length, 0) + text.length > TOTAL_MAX) throw new Error('文件總量超過上限，請先移除舊文件');
-            docs = docs.filter(d => d.name !== f.name); docs.push({ name: f.name, chunks: chunkText(text) });
+            const old = docs.find(d => d.name === f.name); docs = docs.filter(d => d.name !== f.name); docs.push({ name: f.name, chunks: chunkText(text), ...(old && old.subject ? { subject: old.subject } : {}) }); // 重傳同名文件：保留原本的科目
         } catch (err) { note.textContent = `「${f.name}」無法加入：${err.message}`; }
     }
     e.target.value = ''; saveDocs(); buildIndex(); renderDocs();
+    if (typeof classifyDocs === 'function') classifyDocs(false); // 新文件：AI 先幫忙分科目（沒有 Key 就先放「未分類」）
 };
 
 // ---- 問答 ----
@@ -172,7 +175,7 @@ function renderQuiz(qs, picks) {
             const b = mk('button', { type: 'button', className: 'opt' }, o.t);
             b.onclick = () => {
                 btns.forEach((x, i) => { x.disabled = true; if (q.opts[i].ok) x.classList.add('right'); });
-                if (o.ok) score++; else b.classList.add('wrong');
+                if (o.ok) score++; else { b.classList.add('wrong'); if (typeof recordWrong === 'function') recordWrong(q, o, picks); } // 答錯：收進錯題本
                 exp.textContent = (o.ok ? '✔ 答對了。' : '✘ 答錯了。') + q.explain; exp.hidden = false;
                 if (++done === qs.length) {
                     result.textContent = `得分：${score} / ${qs.length}　`;
@@ -195,9 +198,11 @@ async function makeQuiz() {
     if (!ai.key) { openKeyDlg(); return; }
     if (qaBusy) return;
     if (!docs.length) { addMsg('bot', '還沒有文件。請先按「上傳文件」加入 .txt、.md 或 .pdf，再按「出題練習」。', box).classList.add('err'); return; }
-    const long = ragIdx.all.filter(c => c.text.length >= 80), picks = shuffle(long.length >= 4 ? long : ragIdx.all).slice(0, 6);
+    const sub = ($('#quizSub') || {}).value || '', inSub = ragIdx.all.filter(c => !sub || docSubject(docs[c.di]) === sub); // 出題範圍：選了科目就只從該科目的文件出題
+    if (!inSub.length) { addMsg('bot', `「${sub}」科目裡沒有文件。`, box).classList.add('err'); return; }
+    const long = inSub.filter(c => c.text.length >= 80), picks = shuffle(long.length >= 4 ? long : inSub).slice(0, 6);
     qaBusy = true; $('#qaSend').disabled = true; $('#quizBtn').disabled = true;
-    addMsg('user', '📝 出題練習', box);
+    addMsg('user', '📝 出題練習' + (sub ? `（${sub}）` : ''), box);
     const holder = addMsg('bot', '出題中…', box);
     try {
         const ctx = picks.map((c, i) => `[${i + 1}]〈${docs[c.di].name}〉第 ${c.ci + 1} 段\n${c.text}`).join('\n\n');

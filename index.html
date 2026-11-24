@@ -5,7 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>學習儀表板</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <script>window.__t = Date.now(); // 本地檔案每次載入都加時間戳，避免瀏覽器／GitHub Pages 快取舊版（上傳新檔後不用再改版本號）</script>
+  <script>document.write('<link rel="stylesheet" href="style.css?t=' + __t + '">')</script>
 </head>
 
 <body>
@@ -15,7 +16,9 @@
       <button data-view="home" class="on">今日總覽</button>
       <button data-view="calendar">學習月曆</button>
       <button data-view="game">每週挑戰</button>
+      <button data-view="dex">熊圖鑑</button>
       <button data-view="plan">讀書計畫</button>
+      <button data-view="wrong">錯題本</button>
       <button data-view="timer">專注番茄鐘</button>
       <button data-view="todo">待辦事項</button>
       <button data-view="workout">運動紀錄</button>
@@ -81,6 +84,13 @@
           <button id="resetBtn">重設</button>
         </div>
         <p id="msg" class="msg"></p>
+
+        <div class="tracker">
+          <label for="tkSel">🎯 現在在做</label>
+          <select id="tkSel"></select>
+          <p id="tkInfo" class="soon small"></p>
+          <p class="soon small">一輪專注途中可以隨時切換：切換時，前一項做了多久會記在它身上，之後的時間算給新選的待辦。按「重設」放棄這一輪的話，這些時間也不計。沒選待辦的時間不會記在任何待辦上。</p>
+        </div>
 
         <div class="mascot">
           <button id="mascotIcon" class="mascot-icon" aria-label="夥伴（點一下聽一句話）">🐶</button>
@@ -159,6 +169,40 @@
       </p>
     </section>
 
+    <section id="view-dex" class="view" hidden>
+      <h2>熊圖鑑</h2>
+      <p class="soon">圖庫裡每一張熊的圖：蒐集過的顯示圖片和累計數量，還沒蒐集到的顯示成剪影。圖庫新增圖片後，這裡會自動出現新的剪影（帶 NEW）。每週挑戰的熊每週會重置，但圖鑑是從頭到尾的累計。</p>
+      <div class="row"><span id="dexInfo" class="soon"></span><button id="dexReload">重新讀取圖庫</button></div>
+      <div class="row" id="dexFilter"><button data-f="all" class="on">全部</button><button
+          data-f="got">已蒐集</button><button data-f="miss">未蒐集</button></div>
+      <div id="dexGrid" class="dexgrid"></div>
+    </section>
+
+    <section id="view-wrong" class="view narrow" hidden>
+      <h2>錯題本</h2>
+      <p class="soon">在右下角 AI 面板的「問答」分頁按「出題練習」，答錯的題目會自動收進來，依科目整理。上傳文件後 AI 會先幫文件分科目：同科目放一起、不同科目分開；分得不對可以自己改。</p>
+      <div class="panel">
+        <h3>📂 科目與文件</h3>
+        <div class="row">
+          <button id="nbClassify" class="primary">AI 幫未分類的文件分類</button>
+          <button id="nbReclass">AI 重新分類全部</button>
+        </div>
+        <p id="nbNote" class="soon small" aria-live="polite"></p>
+        <div id="nbDocs"></div>
+      </div>
+      <div class="panel">
+        <h3>📒 錯題</h3>
+        <div class="row nbtabs" id="nbTabs"></div>
+        <div class="row">
+          <button id="nbReview" class="primary">🧠 AI 弱點複習</button>
+          <button id="nbRedo">🔁 重做錯題</button>
+          <label class="rtoggle"><input id="nbShowDone" type="checkbox"> 顯示已精熟的</label>
+        </div>
+        <div id="nbOut" class="nbout"></div>
+        <div id="nbItems"></div>
+      </div>
+    </section>
+
     <section id="view-plan" class="view narrow" hidden>
       <h2>讀書計畫</h2>
       <p class="soon">三步驟：① 點選你有空的時段（可按住拖曳）→ ② 勾選要排的待辦、填預估小時 → ③ 讓 AI 排程。AI 會參考待辦的
@@ -189,6 +233,7 @@
         <div class="row" id="pTodoSel"><button data-s="all">全選</button><button data-s="none">全不選</button><button
             data-s="auto">依 deadline 預設</button></div>
         <ul id="pTodos" class="list tight"></ul>
+        <p id="pCalib" class="soon small"></p>
       </div>
       <div class="row">
         <button id="pGo" class="primary">③ 請 AI 排程</button>
@@ -375,6 +420,9 @@
         <label class="filebtn">上傳文件<input id="docIn" type="file" multiple accept=".txt,.md,.markdown,.csv,.log,.pdf"
             hidden></label>
         <button id="quizBtn" title="從你上傳的文件隨機出幾題選擇題">出題練習</button>
+        <select id="quizSub" title="出題範圍（科目）">
+          <option value="">全部科目</option>
+        </select>
         <p id="docHint" class="soon">支援 .txt、.md、.csv、.pdf。AI 只會根據你上傳的內容回答。</p>
         <ul id="docList" class="list tight"></ul>
         <p id="qaNote" class="err-text"></p>
@@ -419,33 +467,36 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=10"></script>
-  <script src="llm.js?v=10"></script>
-  <script src="tools.js?v=10"></script>
-  <script src="companion.js?v=10"></script>
-  <script src="ai.js?v=10"></script>
-  <script src="rag.js?v=10"></script>
-  <script src="music.js?v=10"></script>
+  <script>document.write('<script src="app.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="llm.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="tools.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="companion.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="ai.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="rag.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="wrong.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="music.js?t=' + __t + '"><\/script>')</script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="stats.js?v=10"></script>
-  <script src="home.js?v=10"></script>
-  <script src="wheel.js?v=10"></script>
-  <script src="game.js?v=10"></script>
-  <script src="plan.js?v=10"></script>
-  <script src="roam.js?v=10"></script>
-  <script src="backup.js?v=10"></script>
+  <script>document.write('<script src="stats.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="home.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="wheel.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="game.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="track.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="plan.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="dex.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="roam.js?t=' + __t + '"><\/script>')</script>
+  <script>document.write('<script src="backup.js?t=' + __t + '"><\/script>')</script>
   <script>
-    // 缺檔自我檢查：新檔案沒上傳或被快取時，直接告訴你缺哪一個，不用猜 "xxx is not defined"
-    (function () {
-      const need = [['app.js', typeof save], ['llm.js', typeof callLLM], ['tools.js', typeof TOOLS], ['companion.js', typeof checkDeadlines],
-      ['ai.js', typeof openPanel], ['rag.js', typeof askQA], ['music.js', typeof recommend], ['stats.js', typeof renderStats], ['home.js', typeof renderHome], ['wheel.js', typeof openWheel], ['game.js', typeof renderGame], ['plan.js', typeof renderPlan], ['roam.js', typeof roamRefresh], ['backup.js', typeof exportData]];
-      const miss = need.filter(n => n[1] === 'undefined').map(n => n[0]);
-      if (miss.length) {
-        const d = document.createElement('div'); d.className = 'missing';
-        d.textContent = '⚠ 這些檔案沒有載入成功：' + miss.join('、') + '。請確認它們都在 index.html 同一個資料夾並已上傳，再按 Ctrl+Shift+R 強制重新整理。';
-        document.body.prepend(d);
-      }
-    })();
+      // 缺檔自我檢查：新檔案沒上傳或被快取時，直接告訴你缺哪一個，不用猜 "xxx is not defined"
+      (function () {
+        const need = [['app.js', typeof save], ['llm.js', typeof callLLM], ['tools.js', typeof TOOLS], ['companion.js', typeof checkDeadlines],
+        ['ai.js', typeof openPanel], ['rag.js', typeof askQA], ['wrong.js', typeof nbRender], ['music.js', typeof recommend], ['stats.js', typeof renderStats], ['home.js', typeof renderHome], ['wheel.js', typeof openWheel], ['game.js', typeof renderGame], ['track.js', typeof tkFlush], ['plan.js', typeof renderPlan], ['dex.js', typeof renderDex], ['roam.js', typeof roamRefresh], ['backup.js', typeof exportData]];
+        const miss = need.filter(n => n[1] === 'undefined').map(n => n[0]);
+        if (miss.length) {
+          const d = document.createElement('div'); d.className = 'missing';
+          d.textContent = '⚠ 這些檔案沒有載入成功：' + miss.join('、') + '。請確認它們都在 index.html 同一個資料夾並已上傳，再按 Ctrl+Shift+R 強制重新整理。';
+          document.body.prepend(d);
+        }
+      })();
   </script>
 </body>
 

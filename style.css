@@ -1402,3 +1402,160 @@ a.song:focus-visible {
   border: 1px solid var(--line);
   box-shadow: 0 1px 4px #0004
 }
+
+/* 待辦計時（計時器頁） */
+.tracker {
+  margin: 1rem auto 0;
+  max-width: 28rem;
+  text-align: left
+}
+
+.tracker select {
+  width: 100%;
+  margin: .3rem 0
+}
+
+/* 熊圖鑑 */
+#dexFilter button.on,
+#nbTabs button.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff
+}
+
+.dexgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: .6rem;
+  margin-top: .75rem
+}
+
+.dexcard {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card)
+}
+
+.dexcard img {
+  width: 86%;
+  height: 86%;
+  object-fit: contain
+}
+
+.dexcard.locked img {
+  filter: brightness(0);
+  opacity: .28
+}
+
+.dexq {
+  position: absolute;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--mute)
+}
+
+.dexn {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  padding: 0 .45rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: .75rem
+}
+
+.dexnew {
+  position: absolute;
+  left: 6px;
+  top: 4px;
+  padding: 0 .35rem;
+  border-radius: 6px;
+  background: #e0675a;
+  color: #fff;
+  font-size: .65rem;
+  font-weight: 700
+}
+
+.dexgone {
+  position: absolute;
+  left: 6px;
+  bottom: 4px;
+  font-size: .6rem;
+  color: var(--mute)
+}
+
+/* 錯題本 */
+.nbgrp {
+  margin: .5rem 0;
+  padding: .5rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px
+}
+
+.nbdoc {
+  padding: .15rem 0
+}
+
+.nbcard {
+  margin: .6rem 0;
+  padding: .6rem .8rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card)
+}
+
+.nbcard.done {
+  opacity: .6
+}
+
+.nbq {
+  margin: 0 0 .4rem;
+  font-weight: 600
+}
+
+.nbopts {
+  margin: 0 0 .4rem;
+  padding: 0;
+  list-style: none
+}
+
+.nbopts li {
+  padding: .1rem .3rem;
+  border-radius: 6px
+}
+
+.nbopts li.right {
+  background: color-mix(in srgb, #4cc38a 22%, transparent)
+}
+
+.nbopts li.wrong {
+  background: color-mix(in srgb, #e0675a 22%, transparent);
+  text-decoration: line-through
+}
+
+.nbout {
+  margin: .75rem 0
+}
+
+.nbweak {
+  margin: .75rem 0;
+  padding: .6rem .8rem;
+  border: 1px solid var(--accent);
+  border-radius: 10px
+}
+
+.nbweak h4 {
+  margin: 0 0 .3rem
+}
+
+.nbteach {
+  white-space: pre-wrap;
+  margin: .3rem 0
+}
